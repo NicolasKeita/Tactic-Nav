@@ -26,7 +26,33 @@ Le **Système de Traitement Central (ATC)** : Un serveur en Java pur qui fusionn
 
 Le **Terminal Embarqué (Cockpit)** : Une application Java Android 13 native installée sur une tablette. Connectée en continu au Système de Traitement Central (ATC), elle reçoit le flux de données tactiques en temps réel pour le restituer visuellement sur un fond de carte épuré stocké localement (Offline, sans aucune dépendance à Internet).
 
-> 📸 *Image de présentation générale à venir*
+### 📸 Aperçu Global du Système
+
+<table width="100%">
+  <tr>
+    <td width="33%" align="center"><b>1. Terminal Embarqué (Cockpit)</b></td>
+    <td width="33%" align="center"><b>2. Architecture des Flux</b></td>
+    <td width="33%" align="center"><b>3. Centre de Contrôle (ATC)</b></td>
+  </tr>
+
+  <tr>
+    <td>
+      <img src="https://private-user-images.githubusercontent.com/26335370/600058832-c7ff6e7d-cba8-499d-8342-e0a17277b309.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3ODAwNTQwNTUsIm5iZiI6MTc4MDA1Mzc1NSwicGF0aCI6Ii8yNjMzNTM3MC82MDAwNTg4MzItYzdmZjZlN2QtY2JhOC00OTlkLTgzNDItZTBhMTcyNzdiMzA5LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjA1MjklMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYwNTI5VDExMjIzNVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTM2OTMyMDk5MzYyZmQ3MGVlNDAxZDRiMTgwZTQwM2Q3NGE2Y2ZiMzEzM2M1YTRiZGNjMTY2Mzk0ZGZlZDI5MzEmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.KgQzBGaDqeFNddf0krv0fNlIlH0jI0nWKJMdeVeKPP4" width="100%">
+    </td>
+    <td>
+      <img src="https://private-user-images.githubusercontent.com/26335370/600058853-e68c3714-e896-41b9-8399-027b2d5f11cf.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3ODAwNTQwNTUsIm5iZiI6MTc4MDA1Mzc1NSwicGF0aCI6Ii8yNjMzNTM3MC82MDAwNTg4NTMtZTY4YzM3MTQtZTg5Ni00MWI5LTgzOTktMDI3YjJkNWYxMWNmLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjA1MjklMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYwNTI5VDExMjIzNVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTAzODM2ODA2NmZkZjM5ZDNlZWVjMTY2MjlkNzVlNjQwMmNlM2Y1M2U4OWQwYjRhYzIzNWExOTlhYWMzY2I2OWQmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.jW47hZHjU7K7eIY-JF0VkFoZ6JV2Iuf5p7A3RD4fxFo" width="100%">
+    </td>
+    <td>
+      <img src="https://private-user-images.githubusercontent.com/26335370/600058851-497ade54-3136-4388-ad11-4ddd525c7335.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3ODAwNTQwNTUsIm5iZiI6MTc4MDA1Mzc1NSwicGF0aCI6Ii8yNjMzNTM3MC82MDAwNTg4NTEtNDk3YWRlNTQtMzEzNi00Mzg4LWFkMTEtNGRkZDUyNWM3MzM1LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjA1MjklMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYwNTI5VDExMjIzNVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWY3N2E4NTQwZmI5MDIwMjk3Y2ZlOGFmMTI5MzQwMGEwNGYzNTQ4ZjAzYTZhMDQ4YWRiZDY1ZjRjMjg3NzU3ZDUmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.8URHv5XmkWeCZHTTY62HqmNW9RN9ucKQi05L9zKx6t8" width="100%">
+    </td>
+  </tr>
+
+  <tr>
+    <td><small><i>Application Android native utilisant le moteur <b>Mapsforge</b> pour un rendu tactique fluide 100% Offline.</i></small></td>
+    <td><small><i>Pipeline de données synoptique : des sources radars sol jusqu'à la diffusion UDP vers la tablette du cockpit.</i></small></td>
+    <td><small><i>Console Java Core en action : logs en temps réel illustrant la corrélation des flux et la détection d'alertes SIG.</i></small></td>
+  </tr>
+</table>
 
 ---
 
