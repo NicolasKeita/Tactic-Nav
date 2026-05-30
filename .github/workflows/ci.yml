@@ -21,6 +21,9 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Make Maven Wrapper executable
+        run: chmod +x ./mvnw
+
       - name: Build and test with Maven
         run: ./mvnw verify --batch-mode --no-transfer-progress
 
