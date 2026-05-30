@@ -18,15 +18,20 @@ public class RadarSimulator {
         this.port = port;
     }
 
+    /**
+     * Starts the radar simulation loop. Uses a fixed 32-byte packet buffer.
+     * Initialises a track around Paris with random offsets, then sends UDP
+     * packets on a 100 ms cadence, applying small deterministic motion
+     * for the next packet.
+     */
     public void start() {
         System.out.printf("Starting Radar-%d -> %s:%d (100ms cadence, UDP binary)\n", radarId, host, port);
-        byte[] buffer = new byte[32]; // fixed packet size
+        byte[] buffer = new byte[32];
 
         try (DatagramSocket socket = new DatagramSocket()) {
             InetAddress addr = InetAddress.getByName(host);
 
-            // initial track state
-            float lat = 48.8566f + (rng.nextFloat() - 0.5f) * 0.1f; // around Paris
+            float lat = 48.8566f + (rng.nextFloat() - 0.5f) * 0.1f;
             float lon = 2.3522f + (rng.nextFloat() - 0.5f) * 0.1f;
             float alt = 1000.0f + rng.nextFloat() * 200.0f;
             float speed = 150.0f + rng.nextFloat() * 50.0f;
@@ -40,7 +45,6 @@ public class RadarSimulator {
                 DatagramPacket pkt = new DatagramPacket(buffer, buffer.length, addr, port);
                 socket.send(pkt);
 
-                // small deterministic motion for next packet
                 lat += (rng.nextFloat() - 0.5f) * 0.0005f;
                 lon += (rng.nextFloat() - 0.5f) * 0.0005f;
                 alt += (rng.nextFloat() - 0.5f) * 0.5f;

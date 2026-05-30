@@ -1,6 +1,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.tacticnav</groupId>
@@ -8,63 +9,83 @@
     <version>0.1.0</version>
     <packaging>pom</packaging>
 
+    <!-- ===================== -->
+    <!-- PROPERTIES GLOBALES   -->
+    <!-- ===================== -->
     <properties>
         <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spoon.version>11.2.0</spoon.version>
+        <spotbugs.version>4.8.6</spotbugs.version>
+        <spotbugs.maven.plugin.version>4.8.6.2</spotbugs.maven.plugin.version>
     </properties>
 
+    <!-- ===================== -->
+    <!-- DEPENDENCY VERSIONING -->
+    <!-- ===================== -->
     <dependencyManagement>
         <dependencies>
+
             <dependency>
                 <groupId>fr.inria.gforge.spoon</groupId>
                 <artifactId>spoon-core</artifactId>
                 <version>${spoon.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>1.5.6</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
+    <!-- ===================== -->
+    <!-- MODULES               -->
+    <!-- ===================== -->
     <modules>
         <module>radar-simulator</module>
-        <module>spoon-analyzer</module>
     </modules>
 
+    <!-- ===================== -->
+    <!-- BUILD                 -->
+    <!-- ===================== -->
     <build>
-        <plugins>
+        <pluginManagement>
+            <plugins>
 
-            <!-- Compiler -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
-            </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.11.0</version>
+                    <configuration>
+                        <release>${maven.compiler.release}</release>
+                    </configuration>
+                </plugin>
 
-            <!-- Fat JAR -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>3.3.0</version>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <mainClass>com.tacticnav.radar.Main</mainClass>
-                        </manifest>
-                    </archive>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>make-assembly</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+                <plugin>
+                    <groupId>com.github.spotbugs</groupId>
+                    <artifactId>spotbugs-maven-plugin</artifactId>
+                    <version>${spotbugs.maven.plugin.version}</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>com.github.spotbugs</groupId>
+                            <artifactId>spotbugs</artifactId>
+                            <version>${spotbugs.version}</version>
+                        </dependency>
+                    </dependencies>
+                    <configuration>
+                        <failOnError>false</failOnError>
+                        <threshold>Medium</threshold>
+                        <effort>Max</effort>
+                        <xmlOutput>true</xmlOutput>
+                        <xmlOutputDirectory>${project.reporting.outputDirectory}/spotbugs</xmlOutputDirectory>
+                    </configuration>
+                </plugin>
 
-        </plugins>
+            </plugins>
+        </pluginManagement>
     </build>
+
 </project>
