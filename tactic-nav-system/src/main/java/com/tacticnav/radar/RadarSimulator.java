@@ -25,7 +25,7 @@ public class RadarSimulator {
      * for the next packet.
      */
     public void start() {
-        System.out.printf("Starting Radar-%d -> %s:%d (100ms cadence, UDP binary)\n", radarId, host, port);
+        System.out.printf("Starting Radar-%d -> %s:%d (800ms cadence, UDP binary)\n", radarId, host, port);
         byte[] buffer = new byte[32];
 
         try (DatagramSocket socket = new DatagramSocket()) {
@@ -51,7 +51,7 @@ public class RadarSimulator {
                 lon += (rng.nextFloat() - 0.5f) * 0.0005f;
                 alt += (rng.nextFloat() - 0.5f) * 0.5f;
 
-                Thread.sleep(100);
+                Thread.sleep(800);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
