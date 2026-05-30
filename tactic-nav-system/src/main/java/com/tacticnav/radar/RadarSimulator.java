@@ -44,6 +44,8 @@ public class RadarSimulator {
 
                 DatagramPacket pkt = new DatagramPacket(buffer, buffer.length, addr, port);
                 socket.send(pkt);
+                System.out.printf("[Radar-%d] UDP packet sent to %s:%d (lat=%.4f, lon=%.4f, alt=%.1f, speed=%.1f)%n",
+                        radarId, host, port, lat, lon, alt, speed);
 
                 lat += (rng.nextFloat() - 0.5f) * 0.0005f;
                 lon += (rng.nextFloat() - 0.5f) * 0.0005f;
