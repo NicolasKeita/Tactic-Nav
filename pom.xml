@@ -32,7 +32,7 @@
     <!-- MODULES               -->
     <!-- ===================== -->
     <modules>
-        <module>radar-simulator</module>
+        <module>tactic-nav-system</module>
     </modules>
 
     <!-- ===================== -->

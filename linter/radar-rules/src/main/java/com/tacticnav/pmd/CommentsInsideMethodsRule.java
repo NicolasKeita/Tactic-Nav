@@ -30,11 +30,9 @@ public class CommentsInsideMethodsRule extends AbstractJavaRule {
 
         JavaccToken token = firstToken.getNext() != null ? firstToken.getNext() : firstToken;
         while (token != null) {
-            // Vérifie si ce token a un commentaire précédent
             JavaccToken comment = token.getPreviousComment();
             if (comment != null) {
                 asCtx(data).addViolation(block, declaration.getImage());
-                return; // Un seul warning par méthode suffit
             }
             if (token == lastToken) {
                 break;
