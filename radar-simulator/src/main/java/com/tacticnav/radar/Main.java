@@ -1,8 +1,6 @@
 package com.tacticnav.radar;
 
 public final class Main {
-    int x = 1;
-
     /**
      * Application entry point. Parses radar configuration from command-line
      * arguments, then starts the radar simulator.

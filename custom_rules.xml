@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<ruleset name="Radar Simulator Rules"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0
+                             https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+    <description>
+        Custom ruleset for Radar Simulator project
+    </description>
+
+    <rule ref="rulesets/java/quickstart.xml"/>
+
+    <!-- 2. CUSTOM RULE -->
+    <rule name="CommentsInsideMethods"
+          language="java"
+          message="Avoid comments inside method bodies"
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+
+        <description>
+            Detects comments inside method implementations.
+        </description>
+
+        <properties>
+            <property name="xpath">
+                <value>
+                    //MethodDeclaration//Comment
+                </value>
+            </property>
+        </properties>
+
+    </rule>
+
+</ruleset>
