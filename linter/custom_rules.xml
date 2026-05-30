@@ -12,23 +12,15 @@
 
     <rule ref="rulesets/java/quickstart.xml"/>
 
-    <!-- 2. CUSTOM RULE -->
+    <!-- 2. CUSTOM RULE (Java) -->
     <rule name="CommentsInsideMethods"
           language="java"
           message="Avoid comments inside method bodies"
-          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+          class="com.tacticnav.pmd.CommentsInsideMethodsRule">
 
         <description>
-            Detects comments inside method implementations.
+            Detects comments (single-line, block, Javadoc) inside method and constructor bodies.
         </description>
-
-        <properties>
-            <property name="xpath">
-                <value>
-                    //MethodDeclaration//Comment
-                </value>
-            </property>
-        </properties>
 
     </rule>
 
