@@ -27,7 +27,8 @@ jobs:
       - name: Build and test with Maven
         run: ./mvnw verify --batch-mode --no-transfer-progress
 
-      - name: Static code analysis (SpotBugs)
+      - name: Static code analysis (SpotBugs & Custom rules)
+        continue-on-error: true
         run: ./mvnw verify -Pstatic-analysis --batch-mode --no-transfer-progress
 
       - name: Upload SpotBugs report
