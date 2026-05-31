@@ -23,15 +23,14 @@ class PacketSerializerFunctionalTest {
     void serializeInto_shouldProduceValidPacket_forRealisticTrack() {
         Track track = new Track(
                 (short) 7,
-                48.8566f,
-                2.3522f,
-                1200.5f,
-                175.3f,
+                142.5f,       // azimuth (degrees)
+                12.3f,        // elevation (degrees)
+                23450f,       // slant range (meters)
                 1700000000123L
         );
 
-        // When — serialize into a 32-byte buffer
-        byte[] buf = new byte[32];
+        // When — serialize into a 28-byte buffer
+        byte[] buf = new byte[28];
         PacketSerializer.serializeInto(track, buf);
 
         // Then — verify the full binary envelope
@@ -44,19 +43,18 @@ class PacketSerializerFunctionalTest {
         // Track ID
         assertEquals(7, bb.getShort(2));
 
-        // Position & speed (with tolerance for float representation)
-        assertEquals(48.8566f, bb.getFloat(4),  0.0001f, "Latitude mismatch");
-        assertEquals(2.3522f,  bb.getFloat(8),  0.0001f, "Longitude mismatch");
-        assertEquals(1200.5f, bb.getFloat(12), 0.001f,  "Altitude mismatch");
-        assertEquals(175.3f,  bb.getFloat(16), 0.001f,  "Speed mismatch");
+        // Spherical coordinates (with tolerance for float representation)
+        assertEquals(142.5f,  bb.getFloat(4),  0.0001f, "Azimuth mismatch");
+        assertEquals(12.3f,   bb.getFloat(8),  0.0001f, "Elevation mismatch");
+        assertEquals(23450f,  bb.getFloat(12), 0.001f,  "Slant range mismatch");
 
         // Timestamp
-        assertEquals(1700000000123L, bb.getLong(20));
+        assertEquals(1700000000123L, bb.getLong(16));
 
-        // CRC32 — must cover exactly the first 28 bytes
-        int storedCrc = bb.getInt(28);
+        // CRC32 — must cover exactly the first 24 bytes
+        int storedCrc = bb.getInt(24);
         CRC32 reference = new CRC32();
-        reference.update(buf, 0, 28);
+        reference.update(buf, 0, 24);
         int expectedCrc = (int) reference.getValue();
 
         assertEquals(expectedCrc, storedCrc, "CRC32 integrity check failed");
@@ -68,10 +66,10 @@ class PacketSerializerFunctionalTest {
      */
     @Test
     void serializeInto_shouldBeDeterministic() {
-        Track track = new Track((short) 1, 48.0f, 2.0f, 1000f, 200f, 123456L);
+        Track track = new Track((short) 1, 270.0f, 5.0f, 10000f, 123456L);
 
-        byte[] buf1 = new byte[32];
-        byte[] buf2 = new byte[32];
+        byte[] buf1 = new byte[28];
+        byte[] buf2 = new byte[28];
 
         PacketSerializer.serializeInto(track, buf1);
         PacketSerializer.serializeInto(track, buf2);
