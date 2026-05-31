@@ -3,7 +3,6 @@ package com.tacticnav.radar;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.nio.ByteBuffer;
 import java.util.Random;
 
 public class RadarSimulator {
@@ -18,12 +17,6 @@ public class RadarSimulator {
         this.port = port;
     }
 
-    /**
-     * Starts the radar simulation loop. Uses a fixed 32-byte packet buffer.
-     * Initialises a track around Paris with random offsets, then sends UDP
-     * packets on a 100 ms cadence, applying small deterministic motion
-     * for the next packet.
-     */
     public void start() {
         System.out.printf("Starting Radar-%d -> %s:%d (800ms cadence, UDP binary)\n", radarId, host, port);
         byte[] buffer = new byte[32];

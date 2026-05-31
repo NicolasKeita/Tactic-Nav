@@ -1,5 +1,8 @@
 package com.tacticnav.pmd;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import net.sourceforge.pmd.lang.java.ast.ASTBlock;
 import net.sourceforge.pmd.lang.java.ast.ASTConstructorDeclaration;
 import net.sourceforge.pmd.lang.java.ast.ASTMethodDeclaration;
@@ -25,14 +28,25 @@ public class CommentsInsideMethodsRule extends AbstractJavaRule {
         if (block == null) {
             return;
         }
+        Set<JavaccToken> reported = new HashSet<>();
         JavaccToken firstToken = block.getFirstToken();
         JavaccToken lastToken = block.getLastToken();
+
+        // Ligne de l'accolade ouvrante : les commentaires avant cette ligne sont en dehors du corps
+        int braceLine = firstToken.getReportLocation().getStartLine();
+        int braceColumn = firstToken.getReportLocation().getStartColumn();
 
         JavaccToken token = firstToken.getNext() != null ? firstToken.getNext() : firstToken;
         while (token != null) {
             JavaccToken comment = token.getPreviousComment();
-            if (comment != null) {
-                asCtx(data).addViolation(block, declaration.getImage());
+            if (comment != null && reported.add(comment)) {
+                // Ne signaler que si le commentaire est après l'accolade ouvrante '{'
+                int commentLine = comment.getReportLocation().getStartLine();
+                int commentColumn = comment.getReportLocation().getStartColumn();
+                if (commentLine > braceLine ||
+                    (commentLine == braceLine && commentColumn > braceColumn)) {
+                    asCtx(data).addViolation(block, declaration.getImage());
+                }
             }
             if (token == lastToken) {
                 break;

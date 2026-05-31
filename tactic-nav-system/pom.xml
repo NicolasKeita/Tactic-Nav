@@ -13,6 +13,14 @@
     <artifactId>radar-simulator</artifactId>
     <packaging>jar</packaging>
 
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
     <build>
         <plugins>
             <plugin>
@@ -49,6 +57,70 @@
 
     <profiles>
         <profile>
+            <id>spotbugs</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.github.spotbugs</groupId>
+                        <artifactId>spotbugs-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>spotbugs-check</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>spoon-check</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>fr.inria.gforge.spoon</groupId>
+                        <artifactId>spoon-maven-plugin</artifactId>
+                        <version>3.8.0</version>
+                        <executions>
+                            <execution>
+                                <id>spoon-comment-check</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <compliance>${maven.compiler.release}</compliance>
+                            <enableComments>true</enableComments>
+                            <noClasspath>true</noClasspath>
+                            <skipGeneratedSources>true</skipGeneratedSources>
+                            <processors>
+                                <processor>com.tacticnav.spoon.NoCommentInsideMethodProcessor</processor>
+                            </processors>
+                        </configuration>
+                        <dependencies>
+                            <dependency>
+                                <groupId>com.tacticnav</groupId>
+                                <artifactId>radar-spoon-rules</artifactId>
+                                <version>${project.version}</version>
+                            </dependency>
+                            <dependency>
+                                <groupId>fr.inria.gforge.spoon</groupId>
+                                <artifactId>spoon-core</artifactId>
+                                <version>10.4.1</version>
+                            </dependency>
+                        </dependencies>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
             <id>static-analysis</id>
             <build>
                 <plugins>
@@ -64,6 +136,42 @@
                                 </goals>
                             </execution>
                         </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>fr.inria.gforge.spoon</groupId>
+                        <artifactId>spoon-maven-plugin</artifactId>
+                        <version>3.8.0</version>
+                        <executions>
+                            <execution>
+                                <id>spoon-comment-check</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <compliance>${maven.compiler.release}</compliance>
+                            <enableComments>true</enableComments>
+                            <noClasspath>true</noClasspath>
+                            <skipGeneratedSources>true</skipGeneratedSources>
+                            <processors>
+                                <processor>com.tacticnav.spoon.NoCommentInsideMethodProcessor</processor>
+                            </processors>
+                        </configuration>
+                        <dependencies>
+                            <dependency>
+                                <groupId>com.tacticnav</groupId>
+                                <artifactId>radar-spoon-rules</artifactId>
+                                <version>${project.version}</version>
+                            </dependency>
+                            <dependency>
+                                <groupId>fr.inria.gforge.spoon</groupId>
+                                <artifactId>spoon-core</artifactId>
+                                <version>10.4.1</version>
+                            </dependency>
+                        </dependencies>
                     </plugin>
                 </plugins>
             </build>

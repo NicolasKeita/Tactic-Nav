@@ -17,6 +17,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spotbugs.version>4.8.6</spotbugs.version>
         <spotbugs.maven.plugin.version>4.8.6.2</spotbugs.maven.plugin.version>
+        <junit.version>5.11.4</junit.version>
     </properties>
 
     <!-- ===================== -->
@@ -24,16 +25,15 @@
     <!-- ===================== -->
     <dependencyManagement>
         <dependencies>
-
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>${junit.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
-
-    <!-- ===================== -->
-    <!-- MODULES               -->
-    <!-- ===================== -->
-    <modules>
-        <module>tactic-nav-system</module>
-    </modules>
 
     <!-- ===================== -->
     <!-- BUILD                 -->
@@ -74,5 +74,43 @@
             </plugins>
         </pluginManagement>
     </build>
+
+    <!-- ===================== -->
+    <!-- MODULE SETS           -->
+    <!-- ===================== -->
+    <profiles>
+        <profile>
+            <id>default-build</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <modules>
+                <module>tactic-nav-system</module>
+            </modules>
+        </profile>
+
+        <profile>
+            <id>spoon-check</id>
+            <modules>
+                <module>linter/spoon-rules</module>
+                <module>tactic-nav-system</module>
+            </modules>
+        </profile>
+
+        <profile>
+            <id>spotbugs</id>
+            <modules>
+                <module>tactic-nav-system</module>
+            </modules>
+        </profile>
+
+        <profile>
+            <id>static-analysis</id>
+            <modules>
+                <module>linter/spoon-rules</module>
+                <module>tactic-nav-system</module>
+            </modules>
+        </profile>
+    </profiles>
 
 </project>

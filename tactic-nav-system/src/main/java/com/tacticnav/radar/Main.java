@@ -6,7 +6,6 @@ public final class Main {
      * arguments, then starts the radar simulator.
      */
     public static void main(String[] args) {
-        /* forbidden */
         RadarOptions options = RadarOptions.fromArgs(args);
         RadarSimulator simulator = new RadarSimulator(options.radarId(), options.host(), options.port());
         simulator.start();
