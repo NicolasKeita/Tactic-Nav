@@ -102,8 +102,8 @@ mvn clean package
 
 | File | Purpose |
 |---|---|
-| `README.md` | Project overview |
-| `ARCHITECTURE.md` | ATC architecture and design notes |
-| `ATC_DESIGN_SUMMARY.md` | Design summary and trade-offs |
-| `ATC_DATAFLOW.md` | Message flow and concurrency diagrams |
-| `ATC_QUICKSTART.md` | Build, run and troubleshooting guide |
+| `../../README.md` | Project overview |
+| `../atc/architecture.md` | ATC architecture and design notes |
+| `../atc/design-summary.md` | Design summary and trade-offs |
+| `../atc/dataflow.md` | Message flow and concurrency diagrams |
+| `../atc/quickstart.md` | Build, run and troubleshooting guide |

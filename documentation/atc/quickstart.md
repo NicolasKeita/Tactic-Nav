@@ -192,7 +192,7 @@ Or reduce message rate from radar simulators.
 
 ## Architecture Document
 
-See [ARCHITECTURE.md](../ARCHITECTURE.md) for:
+See [architecture.md](architecture.md) for:
 - Detailed layer descriptions
 - Concurrency model
 - Track fusion algorithm
