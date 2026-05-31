@@ -9,8 +9,8 @@
 
 ![Java](https://img.shields.io/badge/Java-Core%20%2B%20Android%2013-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
 ![Protocol](https://img.shields.io/badge/Protocole-UDP%20Privatif-0078D4?style=flat-square)
-![RAM](https://img.shields.io/badge/RAM%20Max-45%20Mo%20Heap-2ea44f?style=flat-square)
-![Latency](https://img.shields.io/badge/Latence%20calcul-%3C%2030%20ms-blueviolet?style=flat-square)
+![RAM](https://img.shields.io/badge/Cockpit%20RAM-45%20Mo%20Heap-2ea44f?style=flat-square)
+![Latency](https://img.shields.io/badge/Cockpit%20calcul-%3C%2030%20ms-blueviolet?style=flat-square)
 ![FPS](https://img.shields.io/badge/Rendu-30%20FPS%20min-red?style=flat-square)
 ![Offline](https://img.shields.io/badge/Carte-100%25%20Offline-lightgrey?style=flat-square)
 
@@ -78,23 +78,24 @@ Le système repose sur deux composants indépendants communiquant au sein d'un r
 
 ## 3. Contraintes de l'Embarqué Critique & Sûreté
 
-Le logiciel applique des règles de conception strictes adaptées aux environnements industriels et aéronautiques contraints :
+Ces contraintes s'appliquent en priorité au **Terminal Embarqué (Cockpit)**, qui doit rester fluide sur tablette Android avec une carte hors-ligne et un rendu temps réel. Le **serveur ATC**, exécuté sur poste sol Java Core, privilégie plutôt la séparation des couches, la cohérence des snapshots, la fusion déterministe des pistes et une stratégie claire de backpressure UDP.
 
-### Zéro-Allocation Mémoire au Runtime
+### Cockpit : maîtrise mémoire et fluidité
 
-L'instanciation d'objets (mot-clé `new`) est interdite dans les boucles de traitement et de rendu visuel. L'application utilise le design pattern **Object Pool** pour recycler ses structures de données et éliminer les micro-gels provoqués par le *Garbage Collector* de Java.
+Le cockpit limite les allocations dans les boucles de rendu et de calcul géospatial afin d'éviter les pauses visibles dues au *Garbage Collector*. Les structures réutilisables sont pertinentes côté affichage, carte et diagnostic embarqué.
 
-### Gestion Sûre des Erreurs
+### ATC : robustesse serveur
 
-Les structures de contrôle classiques par exceptions (`try-catch`) sont proscrites au sein de la logique métier. Chaque traitement renvoie un conteneur fonctionnel explicite `Result<Value, Error>`, garantissant un code hautement prévisible et immunisé contre les crashs imprévus.
+L'ATC rejette les paquets radar invalides, maintient un modèle de piste cohérent malgré l'ordre non garanti d'UDP, et diffuse des snapshots tactiques consistants sans bloquer le moteur de fusion. Les erreurs réseau ou de parsing sont isolées et journalisées, sans imposer de modèle `Result<T, Error>` global.
 
 ### Indicateurs de Performance (KPIs)
 
 | Métrique | Seuil |
 |---|---|
 | **Temps de démarrage** | Application prête et carte chargée en **< 1.2 seconde** |
-| **Empreinte RAM Maximale** | Consommation stabilisée sous la barre des **45 Mo de Heap** (courbe plate) |
-| **Latence de calcul** | Traitement complet d'un message (réception, parsing, calcul d'intersection et rendu graphique) en **< 30 millisecondes** |
+| **Empreinte RAM Cockpit** | Consommation stabilisée sous la barre des **45 Mo de Heap** (courbe plate) |
+| **Latence Cockpit** | Traitement complet d'un message reçu, calcul géospatial et rendu en **< 30 millisecondes** |
+| **ATC** | Fusion déterministe, snapshots cohérents et diffusion UDP non bloquante ; pas de contrainte stricte à 45 Mo |
 
 ---
 
@@ -134,7 +135,7 @@ La stabilité et la sûreté de fonctionnement sont validées par une suite de t
 
 ### Fuzzing de Données Réseau
 
-Un test de stress injecte en continu des données corrompues, tronquées ou hors-normes via 50 threads concurrents. Le système doit rejeter proprement ces anomalies via le pattern `Result` sans jamais lever d'exception de type `NullPointerException` ou `ArrayIndexOutOfBoundsException`.
+Un test de stress injecte en continu des données corrompues, tronquées ou hors-normes via des flux concurrents. Le système doit rejeter proprement ces anomalies sans propager de `NullPointerException`, `ArrayIndexOutOfBoundsException` ou erreur réseau fatale vers les traitements applicatifs.
 
 ### Robustesse aux Coupures de Flux
 
@@ -205,6 +206,6 @@ La démonstration s'effectue en environnement isolé : un PC portable (Système 
 |---|---|
 | **Action** | Extinction brutale du Système de Traitement Central ATC au milieu des opérations pour simuler une perte de liaison ou un brouillage. |
 | **Résultat** | L'application Android ne plante pas. Un voyant de diagnostic passe au rouge ("FLUX COMPROMIS") et les pistes s'immobilisent sur leur dernière coordonnée valide. Dès le redémarrage du serveur, le flux est capté à nouveau et les appareils reprennent leur course de façon transparente. |
-| **Validation** | Le mécanisme de types `Result` a parfaitement isolé la panne réseau. La tolérance aux pannes logicielles est confirmée. |
+| **Validation** | La couche réseau isole la panne, le cockpit conserve le dernier snapshot valide et la tolérance aux perturbations est confirmée. |
 
 </details>
