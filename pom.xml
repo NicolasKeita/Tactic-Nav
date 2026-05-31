@@ -51,28 +51,41 @@
                     </configuration>
                 </plugin>
 
-                <plugin>
-                    <groupId>com.github.spotbugs</groupId>
-                    <artifactId>spotbugs-maven-plugin</artifactId>
-                    <version>${spotbugs.maven.plugin.version}</version>
-                    <dependencies>
-                        <dependency>
-                            <groupId>com.github.spotbugs</groupId>
-                            <artifactId>spotbugs</artifactId>
-                            <version>${spotbugs.version}</version>
-                        </dependency>
-                    </dependencies>
-                    <configuration>
-                        <failOnError>false</failOnError>
-                        <threshold>Medium</threshold>
-                        <effort>Max</effort>
-                        <xmlOutput>true</xmlOutput>
-                        <xmlOutputDirectory>${project.reporting.outputDirectory}/spotbugs</xmlOutputDirectory>
-                    </configuration>
-                </plugin>
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>${spotbugs.maven.plugin.version}</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.github.spotbugs</groupId>
+                        <artifactId>spotbugs</artifactId>
+                        <version>${spotbugs.version}</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <failOnError>false</failOnError>
+                    <threshold>Medium</threshold>
+                    <effort>Max</effort>
+                    <xmlOutput>true</xmlOutput>
+                    <xmlOutputDirectory>${project.reporting.outputDirectory}/spotbugs</xmlOutputDirectory>
+                </configuration>
+            </plugin>
 
-            </plugins>
-        </pluginManagement>
+        </plugins>
+    </pluginManagement>
+    <plugins>
+        <plugin>
+            <artifactId>maven-clean-plugin</artifactId>
+            <version>3.4.1</version>
+            <configuration>
+                <filesets>
+                    <fileset>
+                        <directory>${project.basedir}/bin</directory>
+                    </fileset>
+                </filesets>
+            </configuration>
+        </plugin>
+    </plugins>
     </build>
 
     <!-- ===================== -->
@@ -85,7 +98,9 @@
                 <activeByDefault>true</activeByDefault>
             </activation>
             <modules>
-                <module>tactic-nav-system</module>
+                <module>nav-protocol</module>
+                <module>radar-simulator</module>
+                <module>atc-server</module>
             </modules>
         </profile>
 
@@ -93,14 +108,18 @@
             <id>spoon-check</id>
             <modules>
                 <module>linter/spoon-rules</module>
-                <module>tactic-nav-system</module>
+                <module>nav-protocol</module>
+                <module>radar-simulator</module>
+                <module>atc-server</module>
             </modules>
         </profile>
 
         <profile>
             <id>spotbugs</id>
             <modules>
-                <module>tactic-nav-system</module>
+                <module>nav-protocol</module>
+                <module>radar-simulator</module>
+                <module>atc-server</module>
             </modules>
         </profile>
 
@@ -108,7 +127,9 @@
             <id>static-analysis</id>
             <modules>
                 <module>linter/spoon-rules</module>
-                <module>tactic-nav-system</module>
+                <module>nav-protocol</module>
+                <module>radar-simulator</module>
+                <module>atc-server</module>
             </modules>
         </profile>
     </profiles>

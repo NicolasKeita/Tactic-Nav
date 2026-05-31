@@ -97,10 +97,11 @@ The ATC has soft latency and throughput goals, not hard embedded limits. The cod
 
 | File | Role |
 |---|---|
-| `tactic-nav-system/src/main/java/com/tacticnav/atc/AtcServer.java` | Main ATC composition and lifecycle |
-| `tactic-nav-system/src/main/java/com/tacticnav/atc/network/RadarListener.java` | UDP listener per radar |
-| `tactic-nav-system/src/main/java/com/tacticnav/atc/network/RadarPacketParser.java` | Binary packet validation and normalization |
-| `tactic-nav-system/src/main/java/com/tacticnav/atc/fusion/TrackFusionEngine.java` | Track association and lifecycle |
-| `tactic-nav-system/src/main/java/com/tacticnav/atc/fusion/FusionOrchestrator.java` | Queue consumer and snapshot publisher |
-| `tactic-nav-system/src/main/java/com/tacticnav/atc/state/SituationStateStore.java` | Immutable snapshot publication |
-| `tactic-nav-system/src/main/java/com/tacticnav/atc/broadcast/BroadcastService.java` | UDP snapshot broadcast |
+| `atc-server/src/main/java/com/tacticnav/atc/AtcServer.java` | Main ATC composition and lifecycle |
+| `atc-server/src/main/java/com/tacticnav/atc/network/RadarListener.java` | UDP listener per radar |
+| `atc-server/src/main/java/com/tacticnav/atc/network/RadarPacketParser.java` | Binary packet validation and normalization through `nav-protocol` |
+| `nav-protocol/src/main/java/com/tacticnav/protocol/RadarPacketCodec.java` | Shared radar datagram codec |
+| `atc-server/src/main/java/com/tacticnav/atc/fusion/TrackFusionEngine.java` | Track association and lifecycle |
+| `atc-server/src/main/java/com/tacticnav/atc/fusion/FusionOrchestrator.java` | Queue consumer and snapshot publisher |
+| `atc-server/src/main/java/com/tacticnav/atc/state/SituationStateStore.java` | Immutable snapshot publication |
+| `atc-server/src/main/java/com/tacticnav/atc/broadcast/BroadcastService.java` | UDP snapshot broadcast |

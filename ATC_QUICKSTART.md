@@ -8,16 +8,15 @@ cd Tactic-Nav
 ```
 
 This produces:
-- `tactic-nav-system/target/radar-simulator-0.1.0.jar` - Radar simulator executable
-- Compiled ATC server classes
+- `bin/atc-server-0.1.0-jar-with-dependencies.jar` - ATC server executable
+- `bin/radar-simulator-0.1.0-jar-with-dependencies.jar` - Radar simulator executable
 
 ## Running the ATC Server
 
 ### 1. Start the ATC Server
 
 ```bash
-java -cp tactic-nav-system/target/classes:tactic-nav-system/src/main/resources \
-  com.tacticnav.atc.AtcServer
+java -jar bin/atc-server-0.1.0-jar-with-dependencies.jar
 ```
 
 Expected output:
@@ -36,16 +35,13 @@ Expected output:
 
 ```bash
 # Terminal 1: Radar 1
-java -cp tactic-nav-system/target/classes:tactic-nav-system/src/main/resources \
-  com.tacticnav.radar.Main 1 15001 127.0.0.1
+java -jar bin/radar-simulator-0.1.0-jar-with-dependencies.jar 1 15001 127.0.0.1
 
 # Terminal 2: Radar 2
-java -cp tactic-nav-system/target/classes:tactic-nav-system/src/main/resources \
-  com.tacticnav.radar.Main 2 15002 127.0.0.1
+java -jar bin/radar-simulator-0.1.0-jar-with-dependencies.jar 2 15002 127.0.0.1
 
 # Terminal 3: Radar 3
-java -cp tactic-nav-system/target/classes:tactic-nav-system/src/main/resources \
-  com.tacticnav.radar.Main 3 15003 127.0.0.1
+java -jar bin/radar-simulator-0.1.0-jar-with-dependencies.jar 3 15003 127.0.0.1
 ```
 
 ### 3. Observe ATC Processing
@@ -62,7 +58,7 @@ The ATC server will:
 
 ## Configuration
 
-Edit `tactic-nav-system/src/main/resources/radar-config.properties`:
+Edit `atc-server/src/main/resources/radar-config.properties`:
 
 ```properties
 # Radar input ports

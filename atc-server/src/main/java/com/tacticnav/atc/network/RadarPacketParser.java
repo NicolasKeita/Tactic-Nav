@@ -1,9 +1,9 @@
 package com.tacticnav.atc.network;
 
 import com.tacticnav.atc.domain.RadarInputMessage;
-import com.tacticnav.radar.Crc32Util;
-
-import java.nio.ByteBuffer;
+import com.tacticnav.protocol.ProtocolException;
+import com.tacticnav.protocol.RadarObservation;
+import com.tacticnav.protocol.RadarPacketCodec;
 
 /**
  * Parses raw UDP radar packets into normalized RadarInputMessage records.
@@ -20,12 +20,7 @@ import java.nio.ByteBuffer;
  * Invalid packets are reported as ParseException and discarded by the listener.
  */
 public final class RadarPacketParser {
-    private static final int PACKET_SIZE = 28;
-    private static final byte HEADER_BYTE_0 = 'R';
-    private static final byte HEADER_BYTE_1 = 'D';
-    
     private final int radarId;
-    private final ByteBuffer buffer = ByteBuffer.allocate(PACKET_SIZE);
 
     public RadarPacketParser(int radarId) {
         this.radarId = radarId;
@@ -40,36 +35,18 @@ public final class RadarPacketParser {
      * @throws ParseException if the packet is malformed or outside accepted ranges
      */
     public RadarInputMessage parse(byte[] packetData, int length) throws ParseException {
-        if (length != PACKET_SIZE) {
-            throw new ParseException("Invalid packet size: " + length + ", expected " + PACKET_SIZE);
+        RadarObservation observation;
+        try {
+            observation = RadarPacketCodec.parse(packetData, length);
+        } catch (ProtocolException e) {
+            throw new ParseException(e.getMessage());
         }
 
-        if (packetData[0] != HEADER_BYTE_0 || packetData[1] != HEADER_BYTE_1) {
-            throw new ParseException(
-                "Invalid header: got '" + (char) packetData[0] + (char) packetData[1] + "', expected 'RD'"
-            );
-        }
-
-        int expectedCrc = Crc32Util.computeCrc32(packetData, 0, 24);
-        int actualCrc = ByteBuffer.wrap(packetData).getInt(24);
-        if (expectedCrc != actualCrc) {
-            throw new ParseException(
-                "CRC32 mismatch: expected 0x" + Integer.toHexString(expectedCrc) +
-                ", got 0x" + Integer.toHexString(actualCrc)
-            );
-        }
-
-        buffer.clear();
-        buffer.put(packetData, 0, PACKET_SIZE);
-        buffer.flip();
-
-        buffer.get();
-        buffer.get();
-        short trackId = buffer.getShort();
-        float azimuth = buffer.getFloat();
-        float elevation = buffer.getFloat();
-        float slantRange = buffer.getFloat();
-        long timestamp = buffer.getLong();
+        short trackId = observation.trackId();
+        float azimuth = observation.azimuth();
+        float elevation = observation.elevation();
+        float slantRange = observation.slantRange();
+        long timestamp = observation.timestamp();
 
         if (!Float.isFinite(azimuth) || azimuth < 0f || azimuth > 360f) {
             throw new ParseException("Invalid azimuth: " + azimuth);

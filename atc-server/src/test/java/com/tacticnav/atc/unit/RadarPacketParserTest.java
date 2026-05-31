@@ -2,7 +2,8 @@ package com.tacticnav.atc.unit;
 
 import com.tacticnav.atc.domain.RadarInputMessage;
 import com.tacticnav.atc.network.RadarPacketParser;
-import com.tacticnav.radar.PacketSerializer;
+import com.tacticnav.protocol.RadarObservation;
+import com.tacticnav.protocol.RadarPacketCodec;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -11,9 +12,9 @@ class RadarPacketParserTest {
 
     @Test
     void parse_shouldReturnNormalizedMessage_forValidPacket() throws Exception {
-        byte[] packet = new byte[28];
-        PacketSerializer.serializeInto(
-            new com.tacticnav.radar.Track((short) 42, 180.5f, 8.25f, 12_000f, 1_700_000_000_000L),
+        byte[] packet = new byte[RadarPacketCodec.PACKET_SIZE];
+        RadarPacketCodec.serializeInto(
+            new RadarObservation((short) 42, 180.5f, 8.25f, 12_000f, 1_700_000_000_000L),
             packet
         );
 
@@ -31,9 +32,9 @@ class RadarPacketParserTest {
 
     @Test
     void parse_shouldRejectInvalidHeader() {
-        byte[] packet = new byte[28];
-        PacketSerializer.serializeInto(
-            new com.tacticnav.radar.Track((short) 7, 90f, 0f, 1_000f, 100L),
+        byte[] packet = new byte[RadarPacketCodec.PACKET_SIZE];
+        RadarPacketCodec.serializeInto(
+            new RadarObservation((short) 7, 90f, 0f, 1_000f, 100L),
             packet
         );
         packet[0] = 'X';
