@@ -3,27 +3,22 @@
 ## Runtime Flow
 
 ```
-Radar source 1 -- UDP --> RadarListener-1
-Radar source 2 -- UDP --> RadarListener-2
-Radar source N -- UDP --> RadarListener-N
-                              |
-                              v
-                       RadarPacketParser
-                              |
-                              v
-                    RadarInputMessage queue
-                              |
-                              v
-                      FusionOrchestrator
-                              |
-                              v
-                       TrackFusionEngine
-                              |
-                              v
-                    SituationStateStore
-                              |
-                              v
-                     BroadcastService -- UDP --> cockpit clients
+UDP radar datagrams --> RadarListener
+                           |
+                           v
+                    RadarPacketParser
+                           |
+                           v
+                 RadarInputMessage queue
+                           |
+                           v
+                   FusionOrchestrator
+                           |
+                           v
+                   TrackFusionEngine
+                           |
+                           v
+                 SituationStateStore
 ```
 
 ## Packet Handling
@@ -50,18 +45,8 @@ For each queued message, the fusion orchestrator:
 2. Copies active tracks into a working map.
 3. Calls `TrackFusionEngine.fuse(...)`.
 4. Publishes a new immutable snapshot.
-5. Notifies observers with lightweight fusion events.
 
-The fusion engine first expires stale tracks, then associates the incoming observation to an existing track by radar-local ID or nearest predicted position inside the association gate. If no track matches, it creates a new one. Older observations for an already matched track are ignored.
-
-## Broadcast Step
-
-Broadcast runs on its own thread. It sends:
-
-- periodic snapshots at `atc.broadcast.interval`
-- immediate snapshots after track creation or expiration
-
-Fusion does not perform UDP sends. Event callbacks only mark the latest snapshot as pending for the broadcast thread, which prevents network I/O from blocking the tracking loop.
+The fusion engine first expires stale tracks, then associates the incoming observation to an existing track by observation track ID or nearest predicted position inside the association gate. If no track matches, it creates a new one. Older observations for an already matched track are ignored.
 
 ## Backpressure
 

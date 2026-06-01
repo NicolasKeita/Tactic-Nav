@@ -22,78 +22,59 @@ java -jar bin/atc-server-0.1.0-jar-with-dependencies.jar
 Expected output:
 ```
 ====== ATC SERVER STARTING ======
-[RadarListener-1] Listening on UDP port 15001
-[RadarListener-2] Listening on UDP port 15002
-[RadarListener-3] Listening on UDP port 15003
+[RadarListener] Listening on 0.0.0.0:15001
 [FusionOrchestrator] Started
-[BroadcastService] Started
-[BroadcastService] Client added: 127.0.0.1:16000
 ====== ATC SERVER RUNNING ======
 ```
 
-### 2. Start Radar Simulators (in separate terminals)
+### 2. Start Radar Simulators
 
 ```bash
-# Terminal 1: Radar 1
-java -jar bin/radar-simulator-0.1.0-jar-with-dependencies.jar 1 15001 127.0.0.1
+# One simulator
+java -jar bin/radar-simulator-0.1.0-jar-with-dependencies.jar 1 127.0.0.1 15001
 
-# Terminal 2: Radar 2
-java -jar bin/radar-simulator-0.1.0-jar-with-dependencies.jar 2 15002 127.0.0.1
-
-# Terminal 3: Radar 3
-java -jar bin/radar-simulator-0.1.0-jar-with-dependencies.jar 3 15003 127.0.0.1
+# Multiple simulators can send to the same ATC listen port.
+java -jar bin/radar-simulator-0.1.0-jar-with-dependencies.jar 2 127.0.0.1 15001
+java -jar bin/radar-simulator-0.1.0-jar-with-dependencies.jar 3 127.0.0.1 15001
 ```
 
 ### 3. Observe ATC Processing
 
 The ATC server will:
 - Receive simulated radar packets
-- Fuse tracks from all 3 sources
-- Broadcast consolidated state
+- Fuse tracks from incoming observations
 - Print statistics every 5 seconds:
 
 ```
-[MONITOR] FusionStats{processed=234, dropped=0, queue=2, tracks=3, zones=0}, broadcasts=23
+[MONITOR] FusionStats{processed=234, dropped=0, queue=2, tracks=3, zones=0}
 ```
 
 ## Configuration
 
-Edit `atc-server/src/main/resources/radar-config.properties`:
+Edit `atc-server/src/main/resources/atc-config.properties`:
 
 ```properties
-# Radar input ports
-atc.radar.ports=15001,15002,15003
-
-# Reference coordinates (latitude, longitude, altitude)
-atc.radar.lat=40.7128
-atc.radar.lon=-74.0060
-atc.radar.alt=100.0
-
-# Broadcast settings
-atc.broadcast.port=15000
-atc.broadcast.interval=100   # milliseconds
-
-# Cockpit client addresses
-atc.cockpit.addresses=127.0.0.1:16000
+# ATC UDP listen socket
+atc.bind.address=0.0.0.0
+atc.listen.port=15001
 ```
 
 ## Architecture Overview
 
 ```
-Radars (UDP) ──→ Listeners ──→ Parser ──→ Fusion Engine ──→ State Store ──→ Broadcast ──→ Cockpits (UDP)
-  15001-15003      (network)   (binary)   (track fusion)    (snapshot)    (UDP binary)  (16000+)
+Radars (UDP) --> Listener --> Parser --> Fusion Engine --> State Store
+                 0.0.0.0:15001
 ```
 
 ## Key Components
 
 | Component | Role |
 |-----------|------|
-| **RadarListener** | Receives UDP packets from a single radar |
+| **RadarListener** | Receives UDP packets on the ATC listen endpoint |
 | **RadarPacketParser** | Validates and parses 28-byte binary packets |
 | **TrackFusionEngine** | Associates observations to tracks (distance-based gating) |
 | **FusionOrchestrator** | Coordinates pipeline with queue-based decoupling |
 | **SituationStateStore** | Thread-safe holder using immutable snapshot publication |
-| **BroadcastService** | Sends consolidated state to cockpit clients |
 
 ## Performance Characteristics
 
@@ -104,7 +85,7 @@ Radars (UDP) ──→ Listeners ──→ Parser ──→ Fusion Engine ──
 - **Throughput**: 1000+ messages/second
 - **Memory**: <100MB typical (no strict limit)
 - **Tracks**: Supports thousands of concurrent tracks
-- **Sources**: Unlimited radar sources (tested with 3)
+- **Input**: Single UDP input stream; source discovery is outside the ATC configuration
 
 ## Monitoring
 
@@ -117,12 +98,12 @@ Radars (UDP) ──→ Listeners ──→ Parser ──→ Fusion Engine ──
   queue=5,            # Current queue size
   tracks=12,          # Active tracks in situation
   zones=3             # Active no-fly zones
-}, broadcasts=456     # Total broadcasts sent
+}
 ```
 
 ### Log Levels
 
-- **INFO**: Component lifecycle (start/stop), client connections
+- **INFO**: Component lifecycle (start/stop)
 - **WARN**: Queue drops, unusually slow fusion processing
 - **ERROR**: Parse errors, socket errors, fatal failures
 
@@ -130,14 +111,9 @@ Errors are logged but don't stop processing. Invalid packets are silently droppe
 
 ## Development
 
-### Adding a New Radar Source
+### Adding Radar Senders
 
-Edit `radar-config.properties`:
-```properties
-atc.radar.ports=15001,15002,15003,15004  # Add port
-```
-
-Then start a new simulator on port 15004. The ATC will automatically accept it.
+Send additional valid radar datagrams to `atc.bind.address:atc.listen.port`. The ATC does not pre-register radar senders or know their source ports. If real deployments need distinct sensor identity or per-sensor reference positions, that identity should be added to the radar protocol instead of being inferred from server configuration.
 
 ### Adjusting Track Association
 
@@ -177,12 +153,6 @@ Or reduce message rate from radar simulators.
 - Check CPU availability
 - Reduce number of active tracks (decrease TTL or gate)
 - Profile with JFR/JVM flags
-
-### No broadcasts received
-
-- Verify cockpit address in config
-- Check network connectivity: `ping 127.0.0.1`
-- Ensure broadcast service is running (check logs)
 
 ### Memory growing unbounded
 

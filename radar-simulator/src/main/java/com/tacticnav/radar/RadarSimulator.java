@@ -66,8 +66,10 @@ public class RadarSimulator {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (Exception e) {
-            System.err.println("Radar simulator error: " + e.getMessage());
-            e.printStackTrace();
+            throw new IllegalStateException(
+                    "Unable to send radar packets to %s:%d: %s. Check that the host is reachable and the port is correct."
+                            .formatted(host, port, e.getMessage()),
+                    e);
         }
     }
 }

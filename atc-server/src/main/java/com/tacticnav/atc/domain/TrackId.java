@@ -4,8 +4,8 @@ package com.tacticnav.atc.domain;
  * Unique stable identifier for a track across the system.
  * Assigned when a track is created and persists for its lifetime.
  * 
- * Convention: combines radar source ID and radar-local track ID.
- *   Format: "radar-{radarId}-{localTrackId}"
+ * Convention: derived from the track ID carried by the radar datagram.
+ *   Format: "track-{observationTrackId}"
  */
 public record TrackId(String value) {
     public TrackId {
@@ -20,9 +20,9 @@ public record TrackId(String value) {
     }
 
     /**
-     * Create a TrackId from a radar source and local track ID.
+     * Create a TrackId from an observation track ID.
      */
-    public static TrackId fromRadarSource(int radarId, short localTrackId) {
-        return new TrackId("radar-" + radarId + "-" + localTrackId);
+    public static TrackId fromObservation(short observationTrackId) {
+        return new TrackId("track-" + observationTrackId);
     }
 }

@@ -6,8 +6,13 @@ public final class Main {
      * arguments, then starts the radar simulator.
      */
     public static void main(String[] args) {
-        RadarOptions options = RadarOptions.fromArgs(args);
-        RadarSimulator simulator = new RadarSimulator(options.radarId(), options.host(), options.port());
-        simulator.start();
+        try {
+            RadarOptions options = RadarOptions.fromArgs(args);
+            RadarSimulator simulator = new RadarSimulator(options.radarId(), options.host(), options.port());
+            simulator.start();
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            System.err.println(e.getMessage());
+            System.exit(1);
+        }
     }
 }

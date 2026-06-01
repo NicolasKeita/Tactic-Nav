@@ -1,7 +1,7 @@
 package com.tacticnav.atc.domain;
 
 /**
- * Represents a consolidated track after fusion of observations from one or more radar sources.
+ * Represents a consolidated track after track fusion of radar observations.
  * 
  * Lifecycle:
  *   1. Created when a new target is detected
@@ -9,7 +9,7 @@ package com.tacticnav.atc.domain;
  *   3. Expired after TTL if no updates received
  *   4. Removed from the air situation
  * 
- * This is an immutable record. The fusion engine creates new Track instances
+ * This is an immutable record. The track fusion engine creates new Track instances
  * rather than mutating existing ones. This provides:
  *   - Safe concurrent reads
  *   - Clear causality and version history
@@ -19,7 +19,6 @@ package com.tacticnav.atc.domain;
  * @param position latest known position + timestamp
  * @param velocity estimated velocity (dx, dy, dz per second)
  * @param confidence overall track confidence (0.0-1.0)
- * @param sourceRadarIds IDs of radars that have reported this track
  * @param updateCount total number of updates received
  * @param createdAt epoch millis when track was created
  * @param lastUpdatedAt epoch millis of most recent update
@@ -29,7 +28,6 @@ public record Track(
         Position position,
         Velocity velocity,
         float confidence,
-        long sourceRadarIds,  // bitfield: radar ID -> bit position (supports up to 64 radars)
         int updateCount,
         long createdAt,
         long lastUpdatedAt
@@ -72,16 +70,6 @@ public record Track(
      */
     public long ageMillis(long currentTimeMillis) {
         return currentTimeMillis - createdAt;
-    }
-
-    /**
-     * Check if a specific radar has contributed to this track.
-     */
-    public boolean hasSourceRadar(int radarId) {
-        if (radarId < 0 || radarId >= 64) {
-            return false;
-        }
-        return (sourceRadarIds & (1L << radarId)) != 0L;
     }
 
     /**

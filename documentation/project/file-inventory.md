@@ -6,9 +6,7 @@
 |---|---|
 | `nav-protocol/` | Shared binary radar datagram protocol and CRC utilities |
 | `radar-simulator/` | Radar packet simulator executable |
-| `atc-server/` | ATC ingestion, fusion, state store and cockpit broadcast server |
-
-The legacy `tactic-nav-system/` directory is not part of the parent Maven reactor. It no longer contains ATC source code.
+| `atc-server/` | ATC UDP ingestion, fusion and state store |
 
 ---
 
@@ -24,13 +22,13 @@ The legacy `tactic-nav-system/` directory is not part of the parent Maven reacto
 | `RadarInputMessage.java` | Normalized radar observation passed into fusion |
 | `Track.java` | Consolidated fused track state |
 | `NoFlyZone.java` | Restricted area model |
-| `SituationSnapshot.java` | Immutable tactical snapshot for readers and broadcasters |
+| `SituationSnapshot.java` | Immutable tactical snapshot for readers |
 
 ### Network (`network/`)
 
 | File | Purpose |
 |---|---|
-| `RadarListener.java` | UDP listener per radar source |
+| `RadarListener.java` | UDP listener for the ATC input stream |
 | `RadarPacketParser.java` | Converts shared protocol observations into ATC input messages |
 | `CoordinateTransformer.java` | Radar-centric spherical to Cartesian conversion |
 
@@ -40,14 +38,11 @@ The legacy `tactic-nav-system/` directory is not part of the parent Maven reacto
 |---|---|
 | `TrackFusionEngine.java` | Track association, update and expiration logic |
 | `FusionOrchestrator.java` | Queue-based single-writer fusion loop |
-| `FusionObserver.java` | Observer interface for fusion updates |
-
-### State, Broadcast and Bootstrap
+### State and Bootstrap
 
 | File | Purpose |
 |---|---|
 | `state/SituationStateStore.java` | Thread-safe snapshot publication |
-| `broadcast/BroadcastService.java` | UDP snapshot broadcast to cockpit clients |
 | `AtcServer.java` | ATC composition, configuration and lifecycle |
 
 ---
@@ -77,7 +72,7 @@ The legacy `tactic-nav-system/` directory is not part of the parent Maven reacto
 
 | File | Purpose |
 |---|---|
-| `atc-server/src/main/resources/radar-config.properties` | ATC radar ports, reference coordinates and cockpit broadcast clients |
+| `atc-server/src/main/resources/atc-config.properties` | ATC UDP bind address and listen port |
 | `radar-simulator/src/main/resources/radar-config.properties` | Radar simulator defaults |
 
 ---

@@ -35,7 +35,6 @@ class SituationStateStoreTest {
             new Position(1.0, 2.0, 3.0, timestamp, 0.9f),
             Velocity.ZERO,
             0.9f,
-            1L,
             1,
             timestamp,
             timestamp

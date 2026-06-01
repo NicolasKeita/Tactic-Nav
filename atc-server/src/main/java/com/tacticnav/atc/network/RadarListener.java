@@ -3,14 +3,16 @@ package com.tacticnav.atc.network;
 import com.tacticnav.atc.domain.RadarInputMessage;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.util.function.Consumer;
 
 /**
- * Listens on a UDP port for radar packets from a single source.
+ * Listens on a UDP port for radar packets.
  * 
  * Design:
- *   - One listener per radar source
+ *   - One listener for the ATC UDP endpoint
  *   - Runs in a dedicated thread
  *   - Parses packets and forwards valid messages to a handler (callback)
  *   - Silently discards invalid packets (logs only)
@@ -18,10 +20,10 @@ import java.util.function.Consumer;
  * 
  * Concurrency:
  *   - Thread-safe: runs in dedicated thread, no shared mutable state
- *   - Handler should be thread-safe or enqueue work to fusion engine
+ *   - Handler should be thread-safe or enqueue work to track fusion
  */
 public class RadarListener implements Runnable {
-    private final int radarId;
+    private final String bindAddress;
     private final int port;
     private final RadarPacketParser parser;
     private final Consumer<RadarInputMessage> handler;
@@ -32,17 +34,17 @@ public class RadarListener implements Runnable {
     private volatile Throwable lastError = null;
 
     /**
-     * Create a listener for a single radar source.
+     * Create a listener for the ATC UDP endpoint.
      * 
-     * @param radarId ID of this radar (for tracking)
+     * @param bindAddress local address to bind
      * @param port UDP port to listen on
      * @param handler callback for successfully parsed messages
      */
-    public RadarListener(int radarId, int port, Consumer<RadarInputMessage> handler) {
-        this.radarId = radarId;
+    public RadarListener(String bindAddress, int port, Consumer<RadarInputMessage> handler) {
+        this.bindAddress = bindAddress;
         this.port = port;
         this.handler = handler;
-        this.parser = new RadarPacketParser(radarId);
+        this.parser = new RadarPacketParser();
     }
 
     /**
@@ -52,10 +54,12 @@ public class RadarListener implements Runnable {
     @Override
     public void run() {
         running = true;
-        try (DatagramSocket datagramSocket = new DatagramSocket(port)) {
+        try (DatagramSocket datagramSocket = new DatagramSocket(null)) {
+            InetAddress localAddress = InetAddress.getByName(bindAddress);
+            datagramSocket.bind(new InetSocketAddress(localAddress, port));
             socket = datagramSocket;
             datagramSocket.setSoTimeout(500);
-            System.out.printf("[RadarListener-%d] Listening on UDP port %d%n", radarId, port);
+            System.out.printf("[RadarListener] Listening on %s:%d%n", bindAddress, port);
             
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
             
@@ -72,19 +76,19 @@ public class RadarListener implements Runnable {
                     RadarInputMessage message = parser.parse(buffer, packet.getLength());
                     handler.accept(message);
                 } catch (RadarPacketParser.ParseException e) {
-                    System.err.printf("[RadarListener-%d] Parse error: %s%n", radarId, e.getMessage());
+                    System.err.printf("[RadarListener] Parse error: %s%n", e.getMessage());
                 }
             }
         } catch (Exception e) {
             if (running) {
                 lastError = e;
-                System.err.printf("[RadarListener-%d] Fatal error: %s%n", radarId, e.getMessage());
+                System.err.printf("[RadarListener] Fatal error: %s%n", e.getMessage());
                 e.printStackTrace();
             }
         } finally {
             socket = null;
             running = false;
-            System.out.printf("[RadarListener-%d] Stopped%n", radarId);
+            System.out.println("[RadarListener] Stopped");
         }
     }
 

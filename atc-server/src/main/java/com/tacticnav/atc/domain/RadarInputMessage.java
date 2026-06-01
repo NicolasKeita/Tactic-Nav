@@ -1,12 +1,11 @@
 package com.tacticnav.atc.domain;
 
 /**
- * Normalized radar input message: the result of parsing and validating a raw UDP packet.
+ * Normalized radar observation: the result of parsing and validating a raw UDP packet.
  * 
- * This is the common currency between the parsing layer and the fusion engine.
- * All radar sources are converted into this standardized format.
+ * This is the common currency between the parsing layer and track fusion.
+ * All accepted radar datagrams are converted into this standardized format.
  * 
- * @param radarId ID of the radar source (e.g., 1, 2, 3...)
  * @param trackId local track ID assigned by the radar (short)
  * @param azimuth azimuth in degrees (0-360)
  * @param elevation elevation in degrees (-90 to +90)
@@ -14,7 +13,6 @@ package com.tacticnav.atc.domain;
  * @param timestamp epoch millis when radar took the measurement
  */
 public record RadarInputMessage(
-        int radarId,
         short trackId,
         float azimuth,
         float elevation,
@@ -37,10 +35,10 @@ public record RadarInputMessage(
     }
 
     /**
-     * Get the normalized track ID for fusion purposes.
-     * Combines radar source and local track ID.
+     * Get the normalized track ID for track fusion.
+     * Uses the track ID carried by the UDP observation.
      */
     public TrackId globalTrackId() {
-        return TrackId.fromRadarSource(radarId, trackId);
+        return TrackId.fromObservation(trackId);
     }
 }

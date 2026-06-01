@@ -12,8 +12,8 @@ import java.util.Map;
  *   - All no-fly zones
  *   - Timestamp of snapshot
  * 
- * This is the primary data structure shared between the fusion engine and
- * the broadcast layer. It is read-only and safe to share across threads.
+ * This is the primary data structure shared between track fusion and
+ * readers. It is read-only and safe to share across threads.
  * 
  * @param timestamp epoch millis when this snapshot was captured
  * @param tracks map of TrackId → Track (all active tracks)

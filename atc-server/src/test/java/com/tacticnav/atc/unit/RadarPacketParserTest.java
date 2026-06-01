@@ -18,11 +18,10 @@ class RadarPacketParserTest {
             packet
         );
 
-        RadarPacketParser parser = new RadarPacketParser(3);
+        RadarPacketParser parser = new RadarPacketParser();
 
         RadarInputMessage message = parser.parse(packet, packet.length);
 
-        assertEquals(3, message.radarId());
         assertEquals(42, message.trackId());
         assertEquals(180.5f, message.azimuth(), 0.0001f);
         assertEquals(8.25f, message.elevation(), 0.0001f);
@@ -39,7 +38,7 @@ class RadarPacketParserTest {
         );
         packet[0] = 'X';
 
-        RadarPacketParser parser = new RadarPacketParser(1);
+        RadarPacketParser parser = new RadarPacketParser();
 
         assertThrows(RadarPacketParser.ParseException.class, () -> parser.parse(packet, packet.length));
     }

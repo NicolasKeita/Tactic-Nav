@@ -13,7 +13,7 @@ import com.tacticnav.atc.domain.Position;
  * Cartesian (assumed radar at origin):
  *   - X: East (positive = away from reference meridian)
  *   - Y: North (positive = towards north pole)
- *   - Z: altitude (positive = up)
+ *   - Z: height relative to the observation reference (positive = up)
  * 
  * Note: This is a simplified conversion. For production, would integrate with
  * WGS84 geodetic transformations and proper map projection.
@@ -25,14 +25,13 @@ public final class CoordinateTransformer {
      * Convert spherical coordinates to Cartesian.
      * 
      * Assumes:
-     *   - Radar is at origin (0, 0, radarAltitude)
+ *   - Observation reference is at origin (0, 0, 0)
      *   - Azimuth 0° is North, 90° is East
      *   - Elevation 0° is horizon, 90° is up
      * 
      * @param azimuth degrees (0-360)
      * @param elevation degrees (-90 to +90)
      * @param slantRange meters
-     * @param radarAltitude altitude of radar (meters MSL)
      * @param timestamp measurement timestamp
      * @param confidence measurement confidence (0.0-1.0)
      * @return Cartesian position
@@ -41,7 +40,6 @@ public final class CoordinateTransformer {
             float azimuth,
             float elevation,
             float slantRange,
-            double radarAltitude,
             long timestamp,
             float confidence
     ) {
@@ -59,7 +57,7 @@ public final class CoordinateTransformer {
         // So we rotate: Y = r*cos(az), X = r*sin(az)
         double y = r_horizontal * Math.cos(az_rad);  // North component
         double x = r_horizontal * Math.sin(az_rad);  // East component
-        double z = radarAltitude + z_offset;
+        double z = z_offset;
 
         return new Position(x, y, z, timestamp, confidence);
     }
@@ -68,19 +66,19 @@ public final class CoordinateTransformer {
      * Convert Cartesian to spherical (inverse operation).
      * Useful for debugging or converting track state back to radar coordinates.
      */
-    public static SphericalCoords toSpherical(Position pos, double radarAltitude) {
+    public static SphericalCoords toSpherical(Position pos) {
         double x = pos.x();
         double y = pos.y();
         double z = pos.z();
 
         // Compute azimuth and elevation
         double r_horizontal = Math.sqrt(x * x + y * y);
-        double slantRange = Math.sqrt(r_horizontal * r_horizontal + (z - radarAltitude) * (z - radarAltitude));
+        double slantRange = Math.sqrt(r_horizontal * r_horizontal + z * z);
         
         double azimuth = Math.atan2(x, y);  // atan2(east, north)
         if (azimuth < 0) azimuth += 2 * Math.PI;
         
-        double elevation = Math.atan2(z - radarAltitude, r_horizontal);
+        double elevation = Math.atan2(z, r_horizontal);
 
         return new SphericalCoords(
             (float) Math.toDegrees(azimuth),

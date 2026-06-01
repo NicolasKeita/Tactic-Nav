@@ -6,65 +6,49 @@ import java.util.*;
 import java.util.concurrent.*;
 
 /**
- * Orchestrates the complete fusion pipeline.
+ * Orchestrates the complete track fusion pipeline.
  * 
  * Pipeline:
  *   1. Receive RadarInputMessage from network listeners
- *   2. Apply fusion logic (associate to tracks, create new)
+ *   2. Apply track fusion logic (associate to tracks, create new)
  *   3. Update state store with new snapshot
- *   4. Notify observers (broadcast layer)
  * 
  * Single-threaded design: processes messages sequentially.
- * Uses a bounded queue to decouple network listeners from fusion.
+ * Uses a bounded queue to decouple network listeners from track fusion.
  * 
  * Backpressure strategy:
  *   - If the queue is full, drop the newest submitted message and count it
- *   - Fusion processes as fast as possible
+ *   - Track fusion processes as fast as possible
  *   - Network listeners are unblocked (fire-and-forget enqueue)
  */
-public class FusionOrchestrator implements Runnable {
+public class TrackFusionOrchestrator implements Runnable {
     
     private final BlockingQueue<RadarInputMessage> messageQueue;
-    private final TrackFusionEngine fusionEngine;
+    private final TrackFusionEngine trackFusionEngine;
     private final SituationStateStore stateStore;
-    private final List<FusionObserver> observers = new CopyOnWriteArrayList<>();
     
     private volatile boolean running = false;
     private volatile long processedMessages = 0;
     private volatile long droppedMessages = 0;
     
-    // Working map owned by the single fusion thread.
+    // Working map owned by the single track fusion thread.
     private Map<TrackId, Track> workingTracks = new HashMap<>();
 
     /**
-     * Create the fusion orchestrator.
+     * Create the track fusion orchestrator.
      * 
-     * @param fusionEngine the track fusion logic
+     * @param trackFusionEngine the track fusion logic
      * @param stateStore the situation snapshot holder
      * @param queueSize capacity of input queue
      */
-    public FusionOrchestrator(
-            TrackFusionEngine fusionEngine,
+    public TrackFusionOrchestrator(
+            TrackFusionEngine trackFusionEngine,
             SituationStateStore stateStore,
             int queueSize
     ) {
-        this.fusionEngine = fusionEngine;
+        this.trackFusionEngine = trackFusionEngine;
         this.stateStore = stateStore;
         this.messageQueue = new LinkedBlockingQueue<>(queueSize);
-    }
-
-    /**
-     * Register an observer for fusion events.
-     */
-    public void addObserver(FusionObserver observer) {
-        observers.add(observer);
-    }
-
-    /**
-     * Remove an observer.
-     */
-    public void removeObserver(FusionObserver observer) {
-        observers.remove(observer);
     }
 
     /**
@@ -78,19 +62,19 @@ public class FusionOrchestrator implements Runnable {
             return true;
         } else {
             droppedMessages++;
-            System.err.printf("[FusionOrchestrator] Queue full, dropped message from radar %d%n", message.radarId());
+            System.err.printf("[TrackFusionOrchestrator] Queue full, dropped observation track %d%n", message.trackId());
             return false;
         }
     }
 
     /**
-     * Main fusion loop.
+     * Main track fusion loop.
      * Processes messages and updates state continuously.
      */
     @Override
     public void run() {
         running = true;
-        System.out.println("[FusionOrchestrator] Started");
+        System.out.println("[TrackFusionOrchestrator] Started");
 
         try {
             while (running && !Thread.currentThread().isInterrupted()) {
@@ -107,13 +91,13 @@ public class FusionOrchestrator implements Runnable {
                     workingTracks.clear();
                     workingTracks.putAll(snapshot.tracks());
 
-                    TrackFusionEngine.FusionResult result = fusionEngine.fuse(
+                    TrackFusionEngine.TrackFusionResult result = trackFusionEngine.fuse(
                         message,
                         workingTracks,
                         System.currentTimeMillis()
                     );
 
-                    SituationSnapshot newSnapshot = stateStore.update(
+                    stateStore.update(
                         result.tracks(),
                         snapshot.zones()
                     );
@@ -121,35 +105,29 @@ public class FusionOrchestrator implements Runnable {
                     long elapsedNanos = System.nanoTime() - startTime;
                     long elapsedMs = elapsedNanos / 1_000_000;
 
-                    for (TrackFusionEngine.FusionEvent event : result.events()) {
-                        for (FusionObserver observer : observers) {
-                            observer.onFusionEvent(event, newSnapshot);
-                        }
-                    }
-
                     processedMessages++;
 
                     if (elapsedMs > 30) {
-                        System.out.printf("[FusionOrchestrator] Slow fusion: %dms%n", elapsedMs);
+                        System.out.printf("[TrackFusionOrchestrator] Slow track fusion: %dms%n", elapsedMs);
                     }
 
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     break;
                 } catch (Exception e) {
-                    System.err.printf("[FusionOrchestrator] Error during fusion: %s%n", e.getMessage());
+                    System.err.printf("[TrackFusionOrchestrator] Error during track fusion: %s%n", e.getMessage());
                     e.printStackTrace();
                 }
             }
         } finally {
             running = false;
-            System.out.printf("[FusionOrchestrator] Stopped (processed: %d, dropped: %d)%n", 
+            System.out.printf("[TrackFusionOrchestrator] Stopped (processed: %d, dropped: %d)%n", 
                 processedMessages, droppedMessages);
         }
     }
 
     /**
-     * Stop the fusion orchestrator.
+     * Stop the track fusion orchestrator.
      */
     public void stop() {
         running = false;
@@ -165,8 +143,8 @@ public class FusionOrchestrator implements Runnable {
     /**
      * Get statistics.
      */
-    public FusionStats getStats() {
-        return new FusionStats(
+    public TrackFusionStats getStats() {
+        return new TrackFusionStats(
             processedMessages,
             droppedMessages,
             messageQueue.size(),
@@ -178,7 +156,7 @@ public class FusionOrchestrator implements Runnable {
     /**
      * Statistics record.
      */
-    public record FusionStats(
+    public record TrackFusionStats(
             long processedMessages,
             long droppedMessages,
             int queueSize,
@@ -188,7 +166,7 @@ public class FusionOrchestrator implements Runnable {
         @Override
         public String toString() {
             return String.format(
-                "FusionStats{processed=%d, dropped=%d, queue=%d, tracks=%d, zones=%d}",
+                "TrackFusionStats{processed=%d, dropped=%d, queue=%d, tracks=%d, zones=%d}",
                 processedMessages, droppedMessages, queueSize, activeTracksCount, activeZonesCount
             );
         }

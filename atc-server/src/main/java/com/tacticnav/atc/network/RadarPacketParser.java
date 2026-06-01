@@ -20,18 +20,12 @@ import com.tacticnav.protocol.RadarPacketCodec;
  * Invalid packets are reported as ParseException and discarded by the listener.
  */
 public final class RadarPacketParser {
-    private final int radarId;
-
-    public RadarPacketParser(int radarId) {
-        this.radarId = radarId;
-    }
-
     /**
      * Parse a UDP packet into a RadarInputMessage.
      * 
      * @param packetData raw bytes from UDP
      * @param length number of valid bytes in packetData
-     * @return normalized radar input message
+     * @return normalized radar observation
      * @throws ParseException if the packet is malformed or outside accepted ranges
      */
     public RadarInputMessage parse(byte[] packetData, int length) throws ParseException {
@@ -62,7 +56,6 @@ public final class RadarPacketParser {
         }
 
         return new RadarInputMessage(
-            radarId,
             trackId,
             azimuth,
             elevation,

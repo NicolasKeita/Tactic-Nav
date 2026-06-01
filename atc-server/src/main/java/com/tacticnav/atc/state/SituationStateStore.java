@@ -9,17 +9,17 @@ import java.util.concurrent.atomic.AtomicLong;
  * 
  * Provides:
  *   - Safe concurrent reads via snapshots
- *   - Single-writer update semantics (fusion engine)
- *   - Consistent views for broadcast
+ *   - Single-writer update semantics (track fusion engine)
+ *   - Consistent views for readers
  * 
  * Design:
  *   - Holds one volatile SituationSnapshot reference
  *   - Updates publish a complete immutable snapshot atomically
- *   - Readers never block the fusion writer
+ *   - Readers never block the track fusion writer
  * 
  * Concurrency Model:
- *   - Many concurrent readers (broadcast threads, UI queries)
- *   - Single writer (fusion engine thread)
+ *   - Many concurrent readers (monitoring threads, UI queries)
+ *   - Single writer (track fusion engine thread)
  *   - Snapshot replacement avoids global locks
  */
 public class SituationStateStore {
@@ -51,7 +51,7 @@ public class SituationStateStore {
 
     /**
      * Update situation with new tracks and zones.
-     * Should be called only by fusion engine (single writer).
+     * Should be called only by track fusion engine (single writer).
      * 
      * @param tracks map of all active tracks
      * @param zones list of all active zones
