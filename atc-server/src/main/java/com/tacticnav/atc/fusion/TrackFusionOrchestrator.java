@@ -2,6 +2,8 @@ package com.tacticnav.atc.fusion;
 
 import com.tacticnav.atc.domain.*;
 import com.tacticnav.atc.state.SituationStateStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -22,6 +24,7 @@ import java.util.concurrent.*;
  *   - Network listeners are unblocked (fire-and-forget enqueue)
  */
 public class TrackFusionOrchestrator implements Runnable {
+    private static final Logger log = LoggerFactory.getLogger(TrackFusionOrchestrator.class);
     
     private final BlockingQueue<RadarInputMessage> messageQueue;
     private final TrackFusionEngine trackFusionEngine;
@@ -62,7 +65,7 @@ public class TrackFusionOrchestrator implements Runnable {
             return true;
         } else {
             droppedMessages++;
-            System.err.printf("[TrackFusionOrchestrator] Queue full, dropped observation track %d%n", message.trackId());
+            log.warn("Queue full, dropped observation track {}", message.trackId());
             return false;
         }
     }
@@ -74,7 +77,7 @@ public class TrackFusionOrchestrator implements Runnable {
     @Override
     public void run() {
         running = true;
-        System.out.println("[TrackFusionOrchestrator] Started");
+        log.info("Track fusion orchestrator started");
 
         try {
             while (running && !Thread.currentThread().isInterrupted()) {
@@ -85,8 +88,6 @@ public class TrackFusionOrchestrator implements Runnable {
                         continue;
                     }
 
-                    long startTime = System.nanoTime();
-                    
                     SituationSnapshot snapshot = stateStore.getSnapshot();
                     workingTracks.clear();
                     workingTracks.putAll(snapshot.tracks());
@@ -102,26 +103,18 @@ public class TrackFusionOrchestrator implements Runnable {
                         snapshot.zones()
                     );
 
-                    long elapsedNanos = System.nanoTime() - startTime;
-                    long elapsedMs = elapsedNanos / 1_000_000;
-
                     processedMessages++;
-
-                    if (elapsedMs > 30) {
-                        System.out.printf("[TrackFusionOrchestrator] Slow track fusion: %dms%n", elapsedMs);
-                    }
 
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     break;
                 } catch (Exception e) {
-                    System.err.printf("[TrackFusionOrchestrator] Error during track fusion: %s%n", e.getMessage());
-                    e.printStackTrace();
+                    log.error("Error during track fusion", e);
                 }
             }
         } finally {
             running = false;
-            System.out.printf("[TrackFusionOrchestrator] Stopped (processed: %d, dropped: %d)%n", 
+            log.info("Track fusion orchestrator stopped (processed={}, dropped={})",
                 processedMessages, droppedMessages);
         }
     }

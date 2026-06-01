@@ -1,5 +1,7 @@
 package com.tacticnav.radar;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -8,6 +10,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Random;
 
 public class RadarSimulator {
+    private static final Logger log = LoggerFactory.getLogger(RadarSimulator.class);
     private final int radarId;
     private final String host;
     private final int port;
@@ -25,7 +28,7 @@ public class RadarSimulator {
      * Each field is updated slightly every iteration to simulate a rotating radar sweep.
      */
     public void start() {
-        System.out.printf("Starting Radar-%d -> %s:%d (800ms cadence, UDP binary)%n", radarId, host, port);
+        log.info("Starting Radar-{} -> {}:{} (800ms cadence, UDP binary)", radarId, host, port);
         byte[] buffer = new byte[28];
 
         try (DatagramSocket socket = new DatagramSocket()) {
@@ -44,9 +47,7 @@ public class RadarSimulator {
 
                 DatagramPacket pkt = new DatagramPacket(buffer, buffer.length, addr, port);
                 socket.send(pkt);
-                String ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS"));
-                System.out.printf("[%s] [Radar-%d] UDP %s:%d -> %s:%d (azimuth=%.1f°, elevation=%.1f°, range=%.0fm)%n",
-                        ts,
+                log.info("[Radar-{}] UDP {}:{} -> {}:{} (azimuth={}°, elevation={}°, range={}m)",
                         radarId,
                         localIp,
                         socket.getLocalPort(),
@@ -63,8 +64,7 @@ public class RadarSimulator {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (Exception e) {
-            System.err.println("Radar simulator error: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Radar simulator error", e);
         }
     }
 }

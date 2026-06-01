@@ -3,7 +3,9 @@
 # ✈️ TACTIC-NAV
 ### Tactical Air Navigation & Centre de Contrôle du Trafic Aérien
 
-*Système embarqué de surveillance tactique en temps réel pour cockpits militaires*
+*Objectif principal : éviter les collisions entre aéronefs en fournissant une situation tactique partagée et en temps réel.*
+
+*La communication se fait via ADS-B ou Data-Link (CPDLC). Plus d'informations à ce sujet à venir.*
 
 ---
 
@@ -53,6 +55,8 @@ Le **Terminal Embarqué (Cockpit)** : Une application Java Android 13 native ins
     <td><small><i>Console Java Core en action : logs en temps réel illustrant la corrélation des flux et la détection d'alertes SIG.</i></small></td>
   </tr>
 </table>
+
+> **Communication tactique** : ADS-B et Data-Link (CPDLC). Plus d'informations à ce sujet à venir.
 
 ---
 

@@ -5,6 +5,8 @@ import com.tacticnav.atc.fusion.TrackFusionEngine;
 import com.tacticnav.atc.network.RadarListener;
 import com.tacticnav.atc.state.SituationStateStore;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.net.InetAddress;
 import java.util.*;
 
@@ -30,6 +32,7 @@ import java.util.*;
  */
 public final class AtcServer {
     
+    private static final Logger log = LoggerFactory.getLogger(AtcServer.class);
     private final List<Thread> threads = new ArrayList<>();
     
     // Components
@@ -67,20 +70,20 @@ public final class AtcServer {
      */
     public void start() {
         running = true;
-        System.out.println("====== ATC SERVER STARTING ======");
+        log.info("====== ATC SERVER STARTING ======");
 
         Thread radarThread = new Thread(radarListener, "RadarListener");
         threads.add(radarThread);
         radarThread.start();
-        System.out.println("Started UDP listener");
+        log.info("Started UDP listener");
 
         // Start track fusion orchestrator
         Thread trackFusionThread = new Thread(trackFusionOrchestrator, "TrackFusionOrchestrator");
         threads.add(trackFusionThread);
         trackFusionThread.start();
-        System.out.println("Started track fusion orchestrator");
+        log.info("Started track fusion orchestrator");
 
-        System.out.println("====== ATC SERVER RUNNING ======");
+        log.info("====== ATC SERVER RUNNING ======");
     }
 
     /**
@@ -90,7 +93,7 @@ public final class AtcServer {
         if (!running) return;
         
         running = false;
-        System.out.println("====== ATC SERVER STOPPING ======");
+        log.info("====== ATC SERVER STOPPING ======");
 
         // Signal all components to stop
         radarListener.stop();
@@ -106,14 +109,14 @@ public final class AtcServer {
                 long remaining = Math.max(100, timeoutMs - elapsed);
                 t.join(remaining);
                 if (t.isAlive()) {
-                    System.out.printf("Thread %s did not stop in time, interrupting%n", t.getName());
+                    log.warn("Thread {} did not stop in time, interrupting", t.getName());
                     t.interrupt();
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
         }
-        System.out.println("====== ATC SERVER STOPPED ======");
+        log.info("====== ATC SERVER STOPPED ======");
     }
 
     /**
@@ -123,7 +126,7 @@ public final class AtcServer {
         try {
             // Load configuration
             AtcConfiguration config = AtcConfiguration.load();
-            System.out.println(config);
+            log.info("Loaded ATC configuration: {}", config);
 
             // Create and start server
             AtcServer server = new AtcServer(config);
@@ -136,8 +139,7 @@ public final class AtcServer {
             Thread.currentThread().join();
 
         } catch (Exception e) {
-            System.err.printf("Fatal error: %s%n", e.getMessage());
-            e.printStackTrace();
+            log.error("Fatal error while running ATC server", e);
             System.exit(1);
         }
     }

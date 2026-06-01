@@ -1,11 +1,15 @@
 package com.tacticnav.atc.network;
 
 import com.tacticnav.atc.domain.RadarInputMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.function.Consumer;
 
 /**
@@ -23,6 +27,7 @@ import java.util.function.Consumer;
  *   - Handler should be thread-safe or enqueue work to track fusion
  */
 public class RadarListener implements Runnable {
+    private static final Logger log = LoggerFactory.getLogger(RadarListener.class);
     private final String bindAddress;
     private final int port;
     private final RadarPacketParser parser;
@@ -59,7 +64,7 @@ public class RadarListener implements Runnable {
             datagramSocket.bind(new InetSocketAddress(localAddress, port));
             socket = datagramSocket;
             datagramSocket.setSoTimeout(500);
-            System.out.printf("[RadarListener] Listening on %s:%d%n", bindAddress, port);
+            log.info("Listening on {}:{}", bindAddress, port);
             
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
             
@@ -74,21 +79,25 @@ public class RadarListener implements Runnable {
                 
                 try {
                     RadarInputMessage message = parser.parse(buffer, packet.getLength());
+                    
+                    String srcAddr = packet.getAddress().getHostAddress() + ":" + packet.getPort();
+                    log.info("Received packet from {}: radarId={}, azimuth={}°, elevation={}°, range={}m",
+                        srcAddr, message.trackId(), message.azimuth(), message.elevation(), message.slantRange());
+                    
                     handler.accept(message);
                 } catch (RadarPacketParser.ParseException e) {
-                    System.err.printf("[RadarListener] Parse error: %s%n", e.getMessage());
+                    log.warn("Parse error while parsing radar packet", e);
                 }
             }
         } catch (Exception e) {
             if (running) {
                 lastError = e;
-                System.err.printf("[RadarListener] Fatal error: %s%n", e.getMessage());
-                e.printStackTrace();
+                log.error("Fatal error in RadarListener", e);
             }
         } finally {
             socket = null;
             running = false;
-            System.out.println("[RadarListener] Stopped");
+            log.info("Radar listener stopped");
         }
     }
 
