@@ -8,7 +8,7 @@
 ---
 
 ![Java](https://img.shields.io/badge/Java-Core%20%2B%20Android%2013-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
-![Protocol](https://img.shields.io/badge/Protocole-UDP%20Privatif-0078D4?style=flat-square)
+![Protocol](https://img.shields.io/badge/Protocole-UDP%20-0078D4?style=flat-square)
 ![RAM](https://img.shields.io/badge/Cockpit%20RAM-45%20Mo%20Heap-2ea44f?style=flat-square)
 ![Latency](https://img.shields.io/badge/Cockpit%20calcul-%3C%2030%20ms-blueviolet?style=flat-square)
 ![FPS](https://img.shields.io/badge/Rendu-30%20FPS%20min-red?style=flat-square)

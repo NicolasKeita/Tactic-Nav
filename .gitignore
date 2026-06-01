@@ -26,3 +26,9 @@ replay_pid*
 target/
 .vscode/
 .tmp*
+
+# Android / Gradle
+.gradle/
+build/
+**/build/
+local.properties
