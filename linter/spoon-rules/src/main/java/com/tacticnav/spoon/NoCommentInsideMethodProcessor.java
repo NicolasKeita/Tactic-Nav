@@ -10,13 +10,9 @@ import spoon.reflect.cu.SourcePosition;
 import spoon.reflect.visitor.filter.TypeFilter;
 import spoon.support.Level;
 
-import java.util.List;
-
 /**
- * Spoon processor that detects comments inside method/constructor bodies.
- * Equivalent to the PMD rule CommentsInsideMethodsRule.
- *
- * Compatible with spoon-core 10.4.x
+ * Spoon processor that detects comments
+ * inside method/constructor bodies.
  */
 public class NoCommentInsideMethodProcessor extends AbstractProcessor<CtExecutable<?>> {
 
@@ -32,7 +28,7 @@ public class NoCommentInsideMethodProcessor extends AbstractProcessor<CtExecutab
             return;
         }
 
-        List<CtComment> comments = body.getElements(
+        var comments = body.getElements(
             new TypeFilter<>(CtComment.class)
         );
         if (comments.isEmpty()) {

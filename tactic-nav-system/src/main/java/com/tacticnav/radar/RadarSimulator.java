@@ -5,8 +5,6 @@ import org.slf4j.LoggerFactory;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Random;
 
 public class RadarSimulator {
