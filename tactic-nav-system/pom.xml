@@ -10,7 +10,7 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>radar-simulator</artifactId>
+    <artifactId>ground-station</artifactId>
     <packaging>jar</packaging>
 
     <dependencies>
@@ -43,7 +43,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.tacticnav.radar.Main</mainClass>
+                            <mainClass>com.tacticnav.groundstation.GroundStation</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

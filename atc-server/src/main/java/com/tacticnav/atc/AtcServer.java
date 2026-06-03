@@ -2,7 +2,7 @@ package com.tacticnav.atc;
 
 import com.tacticnav.atc.fusion.TrackFusionOrchestrator;
 import com.tacticnav.atc.fusion.TrackFusionEngine;
-import com.tacticnav.atc.network.RadarListener;
+import com.tacticnav.atc.network.AdsbListener;
 import com.tacticnav.atc.state.SituationStateStore;
 
 import org.slf4j.Logger;
@@ -39,7 +39,7 @@ public final class AtcServer {
     private final SituationStateStore stateStore;
     private final TrackFusionEngine trackFusionEngine;
     private final TrackFusionOrchestrator trackFusionOrchestrator;
-    private final RadarListener radarListener;
+    private final AdsbListener adsbListener;
     
     private volatile boolean running = false;
 
@@ -57,7 +57,7 @@ public final class AtcServer {
             1000  // message queue size
         );
 
-        this.radarListener = new RadarListener(
+        this.adsbListener = new AdsbListener(
             config.bindAddress(),
             config.listenPort(),
             trackFusionOrchestrator::submitMessage
@@ -72,10 +72,10 @@ public final class AtcServer {
         running = true;
         log.info("====== ATC SERVER STARTING ======");
 
-        Thread radarThread = new Thread(radarListener, "RadarListener");
-        threads.add(radarThread);
-        radarThread.start();
-        log.info("Started UDP listener");
+        Thread adsbThread = new Thread(adsbListener, "AdsbListener");
+        threads.add(adsbThread);
+        adsbThread.start();
+        log.info("Started ADS-B UDP listener");
 
         // Start track fusion orchestrator
         Thread trackFusionThread = new Thread(trackFusionOrchestrator, "TrackFusionOrchestrator");
@@ -96,7 +96,7 @@ public final class AtcServer {
         log.info("====== ATC SERVER STOPPING ======");
 
         // Signal all components to stop
-        radarListener.stop();
+        adsbListener.stop();
         trackFusionOrchestrator.stop();
 
         // Wait for threads to finish (with timeout)

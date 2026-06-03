@@ -111,7 +111,7 @@
             </activation>
             <modules>
                 <module>nav-protocol</module>
-                <module>radar-simulator</module>
+                <module>ground-station</module>
                 <module>atc-server</module>
             </modules>
         </profile>
@@ -121,7 +121,7 @@
             <modules>
                 <module>linter/spoon-rules</module>
                 <module>nav-protocol</module>
-                <module>radar-simulator</module>
+                <module>ground-station</module>
                 <module>atc-server</module>
             </modules>
         </profile>
@@ -130,7 +130,7 @@
             <id>spotbugs</id>
             <modules>
                 <module>nav-protocol</module>
-                <module>radar-simulator</module>
+                <module>ground-station</module>
                 <module>atc-server</module>
             </modules>
         </profile>
@@ -140,7 +140,7 @@
             <modules>
                 <module>linter/spoon-rules</module>
                 <module>nav-protocol</module>
-                <module>radar-simulator</module>
+                <module>ground-station</module>
                 <module>atc-server</module>
             </modules>
         </profile>

@@ -9,7 +9,7 @@ cd Tactic-Nav
 
 This produces:
 - `bin/atc-server-0.1.0-jar-with-dependencies.jar` - ATC server executable
-- `bin/radar-simulator-0.1.0-jar-with-dependencies.jar` - Radar simulator executable
+- `bin/ground-station-0.1.0-jar-with-dependencies.jar` - Ground station simulator executable
 
 ## Running the ATC Server
 
@@ -27,21 +27,20 @@ Expected output:
 ====== ATC SERVER RUNNING ======
 ```
 
-### 2. Start Radar Simulators
+### 2. Start Ground Station Simulators
 
 ```bash
-# One simulator
-java -jar bin/radar-simulator-0.1.0-jar-with-dependencies.jar 1 127.0.0.1 15001
+# One station (default config sends to 127.0.0.1:15001)
+java -jar bin/ground-station-0.1.0-jar-with-dependencies.jar
 
-# Multiple simulators can send to the same ATC listen port.
-java -jar bin/radar-simulator-0.1.0-jar-with-dependencies.jar 2 127.0.0.1 15001
-java -jar bin/radar-simulator-0.1.0-jar-with-dependencies.jar 3 127.0.0.1 15001
+# Or override host/port and instance count
+java -jar bin/ground-station-0.1.0-jar-with-dependencies.jar --host 127.0.0.1 --port 15001 --count 12
 ```
 
 ### 3. Observe ATC Processing
 
 The ATC server will:
-- Receive simulated radar packets
+- Receive simulated ADS-B packets
 - Fuse tracks from incoming observations
 - Print statistics every 5 seconds:
 
@@ -62,7 +61,7 @@ atc.listen.port=15001
 ## Architecture Overview
 
 ```
-Radars (UDP) --> Listener --> Parser --> Fusion Engine --> State Store
+ADS-B (UDP) --> Listener --> Parser --> Fusion Engine --> State Store
                  0.0.0.0:15001
 ```
 
@@ -70,8 +69,8 @@ Radars (UDP) --> Listener --> Parser --> Fusion Engine --> State Store
 
 | Component | Role |
 |-----------|------|
-| **RadarListener** | Receives UDP packets on the ATC listen endpoint |
-| **RadarPacketParser** | Validates and parses 28-byte binary packets |
+| **AdsbListener** | Receives ADS-B UDP packets on the ATC listen endpoint |
+| **AdsbPacketParser** | Validates and parses 112-byte binary ADS-B packets |
 | **TrackFusionEngine** | Associates observations to tracks (distance-based gating) |
 | **FusionOrchestrator** | Coordinates pipeline with queue-based decoupling |
 | **SituationStateStore** | Thread-safe holder using immutable snapshot publication |

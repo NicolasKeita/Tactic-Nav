@@ -4,8 +4,8 @@
 
 | Module | Purpose |
 |---|---|
-| `nav-protocol/` | Shared binary radar datagram protocol and CRC utilities |
-| `radar-simulator/` | Radar packet simulator executable |
+| `nav-protocol/` | Shared binary datagram protocol and CRC utilities |
+| `ground-station/` | Ground station simulator executable (ADS-B relay) |
 | `atc-server/` | ATC UDP ingestion, fusion and state store |
 
 ---
@@ -28,8 +28,8 @@
 
 | File | Purpose |
 |---|---|
-| `RadarListener.java` | UDP listener for the ATC input stream |
-| `RadarPacketParser.java` | Converts shared protocol observations into ATC input messages |
+| `AdsbListener.java` | UDP listener for the ATC ADS-B input stream |
+| `AdsbPacketParser.java` | Converts custom 112-byte ADS-B datagrams into ATC input messages |
 | `CoordinateTransformer.java` | Radar-centric spherical to Cartesian conversion |
 
 ### Fusion (`fusion/`)
@@ -58,13 +58,12 @@
 
 ---
 
-## Radar Simulator (`radar-simulator/src/main/java/com/tacticnav/radar/`)
+## Ground Station Simulator (`ground-station/src/main/java/com/tacticnav/groundstation/`)
 
 | File | Purpose |
 |---|---|
 | `Main.java` | Simulator entry point |
-| `RadarOptions.java` | CLI and resource configuration parsing |
-| `RadarSimulator.java` | UDP packet generation loop |
+| `GroundStation.java` | Simulates reception of ADS-B and forwards UDP packets to ATC |
 
 ---
 
@@ -73,7 +72,7 @@
 | File | Purpose |
 |---|---|
 | `atc-server/src/main/resources/atc-config.properties` | ATC UDP bind address and listen port |
-| `radar-simulator/src/main/resources/radar-config.properties` | Radar simulator defaults |
+| `ground-station/src/main/resources/ground-station.properties` | Ground station defaults |
 
 ---
 
@@ -89,7 +88,7 @@ mvn clean package
 | Artifact | Purpose |
 |---|---|
 | `bin/atc-server-0.1.0-jar-with-dependencies.jar` | ATC server |
-| `bin/radar-simulator-0.1.0-jar-with-dependencies.jar` | Radar simulator |
+| `bin/ground-station-0.1.0-jar-with-dependencies.jar` | Ground station simulator |
 
 ---
 
