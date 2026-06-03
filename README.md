@@ -5,7 +5,7 @@
 
 *Objectif principal : éviter les collisions entre aéronefs en fournissant une situation tactique partagée et en temps réel.*
 
-*La communication se fait via ADS-B ou Data-Link (CPDLC). Plus d'informations à ce sujet à venir.*
+*La communication se fait via le protocole ADS-B (Automatic Dependent Surveillance-Broadcast).*
 
 ---
 
@@ -24,9 +24,13 @@
 
 Dans le cadre de la modernisation des systèmes avioniques d'aéronefs militaires, le projet **TACTIC-NAV** vise à développer un prototype de système d'affichage tactique et de gestion des flux de données cartographiques en temps réel.
 
-Le **Système de Traitement Central (ATC)** : Un serveur en Java pur qui fusionne en continu les flux de données provenant de plusieurs radars au sol. Il filtre les informations, calcule instantanément les trajectoires et diffuse automatiquement les pistes radar ainsi que les limites des zones d'exclusion (No-Fly Zones) géospatiales.
 
-Le **Terminal Embarqué (Cockpit)** : Une application Java Android 13 native installée sur une tablette. Connectée en continu au Système de Traitement Central (ATC), elle reçoit le flux de données tactiques en temps réel pour le restituer visuellement sur un fond de carte épuré stocké localement (Offline, sans aucune dépendance à Internet).
+Le **Système de Traitement Central (ATC)** : Un serveur en Java pur qui agrège en continu les flux de données ADS-B interceptés et retransmis par les nombreux récepteurs au sol à portée. Il offre une console de supervision et de contrôle du trafic aérien global pour les opérateurs sol.
+
+Le **Terminal Embarqué (Cockpit)** : Une application Java Android 13 native installée sur une tablette. Elle capte directement les trames ADS-B diffusées en mode Air-Air par les avions environnants (Avion A, B, C, D) pour restituer visuellement la situation tactique en temps réel. Le fond de carte épuré ainsi que les limites des zones d'exclusion (No-Fly Zones) sont stockés à 100% en local (Offline, sans aucune dépendance à Internet ni au serveur ATC).
+
+> 💡 **Note sur le Contexte Militaire & Paradoxe de l'ADS-B :**
+> Dans la vraie vie, les militaires détestent l'ADS-B en mission car il est public, non chiffré, et facilement falsifiable (spoofing). Un avion militaire en opération coupe son ADS-B (mode furtif) et utilise à la place une Liaison de Données Tactiques (comme la Liaison 16), qui permet de faire du Air-Air ET du Ground-Air de manière hautement sécurisée et chiffrée. L'implémentation de l'ADS-B ici sert de démonstrateur technologique civilo-militaire pour valider la gestion des flux temps réel.
 
 ### 📸 Aperçu Global du Système
 
@@ -51,38 +55,40 @@ Le **Terminal Embarqué (Cockpit)** : Une application Java Android 13 native ins
 
   <tr>
     <td><small><i>Application Android native utilisant le moteur <b>Mapsforge</b> pour un rendu tactique fluide 100% Offline.</i></small></td>
-    <td><small><i>Pipeline de données synoptique : des sources radars sol jusqu'à la diffusion UDP vers la tablette du cockpit.</i></small></td>
-    <td><small><i>Console Java Core en action : logs en temps réel illustrant la corrélation des flux et la détection d'alertes SIG.</i></small></td>
+    <td><small><i>Pipeline de données synoptique : du broadcast ADS-B Air-Air direct vers la tablette et du segment Air-Sol via les récepteurs vers l'ATC.</i></small></td>
+    <td><small><i>Console Java Core en action : logs en temps réel illustrant l'agrégation des flux et la supervision du trafic.</i></small></td>
   </tr>
 </table>
-
-> **Communication tactique** : ADS-B et Data-Link (CPDLC). Plus d'informations à ce sujet à venir.
 
 ---
 
 ## 2. Architecture Technique & Schéma Réseau
 
-Le système repose sur deux composants indépendants communiquant au sein d'un réseau local privatif via des flux de données UDP :
+Le système repose sur deux composants indépendants communiquant au sein d'un réseau privatif simulé via des flux de données UDP :
 
-- **Le Système de Traitement Central (ATC)** : Une application Java Core développée sans framework lourd (ni Spring, ni Quarkus). Elle écoute en parallèle plusieurs flux provenant de différents radars au sol, consolide les coordonnées des cibles aériennes reçues et diffuse la situation globale ainsi que les zones de restriction géospatiales.
-- **Le Terminal Embarqué (Cockpit)** : Une application Android native écrite en Java pur, conçue pour équiper les tablettes tactiles des cockpits afin de restituer graphiquement l'environnement tactique.
+- **Le Système de Traitement Central (ATC)** : Une application Java Core développée sans framework lourd (ni Spring, ni Quarkus). Elle écoute en parallèle les flux provenant de plusieurs récepteurs au sol à portée, agglomère les coordonnées des cibles aériennes reçues et assure le suivi global du trafic.
+- **Le Terminal Embarqué (Cockpit)** : Une application Android native écrite en Java pur, conçue pour équiper les tablettes tactiles des cockpits afin d'intercepter en direct le trafic environnant et de restituer graphiquement l'environnement tactique anti-collision de manière autonome.
 
 ### Schéma des flux réseau
 
 ```
-[ Radar Sol 1 ] ───(UDP)───┐
-[ Radar Sol 2 ] ───(UDP)───┼─► [ ATC : Centre de Contrôle du Trafic Aérien ] ───(UDP)───► [ COCKPIT : Terminal Embarqué Android ]
-[ Radar Sol N ] ───(UDP)───┘
-                                │                                               │
-                            Multi-threads d'écoute                          Thread Réseau dédié
-                            Consolidation géospatiale                       Moteur SIG Hors-ligne
-```
+[ Avion B ] ───(ADS-B Out/UDP)───► [ COCKPIT (Avion A) : Terminal Android ]
+[ Avion C ] ───(ADS-B Out/UDP)───▲          │
+[ Avion D ] ───(ADS-B Out/UDP)───┤          │ (Calcul anti-collision local)
+│          ▼
+│       Moteur SIG Hors-ligne & No-Fly Zones locales
+│
+▼ (Diffusion Air-Sol)
+[ Multiples Récepteurs Sol ] ───(UDP)───► [ ATC : Supervision du Trafic ]
+│
+Multi-threads d'écoute
+Suivi du trafic global
 
----
+```
 
 ## 3. Contraintes de l'Embarqué Critique & Sûreté
 
-Ces contraintes s'appliquent en priorité au **Terminal Embarqué (Cockpit)**, qui doit rester fluide sur tablette Android avec une carte hors-ligne et un rendu temps réel. Le **serveur ATC**, exécuté sur poste sol Java Core, privilégie plutôt la séparation des couches, la cohérence des snapshots, la fusion déterministe des pistes et une stratégie claire de backpressure UDP.
+Ces contraintes s'appliquent en priorité au **Terminal Embarqué (Cockpit)**, qui doit rester fluide sur tablette Android avec une carte hors-ligne et un rendu temps réel. Le **serveur ATC**, exécuté sur poste sol Java Core, privilégie la séparation des couches, la cohérence des snapshots et une stratégie claire de backpressure UDP.
 
 ### Cockpit : maîtrise mémoire et fluidité
 
@@ -90,16 +96,16 @@ Le cockpit limite les allocations dans les boucles de rendu et de calcul géospa
 
 ### ATC : robustesse serveur
 
-L'ATC rejette les paquets radar invalides, maintient un modèle de piste cohérent malgré l'ordre non garanti d'UDP, et diffuse des snapshots tactiques consistants sans bloquer le moteur de fusion. Les erreurs réseau ou de parsing sont isolées et journalisées, sans imposer de modèle `Result<T, Error>` global.
+L'ATC rejette les paquets ADS-B invalides, maintient un modèle de piste cohérent malgré l'ordre non garanti d'UDP, et traite les snapshots de trafic sans bloquer le moteur d'agrégation. Les erreurs réseau ou de parsing sont isolées et journalisées.
 
 ### Indicateurs de Performance (KPIs)
 
 | Métrique | Seuil |
 |---|---|
-| **Temps de démarrage** | Application prête et carte chargée en **< 1.2 seconde** |
+| **Temps de démarrage** | Application prête, carte et No-Fly Zones chargées en **< 1.2 seconde** |
 | **Empreinte RAM Cockpit** | Consommation stabilisée sous la barre des **45 Mo de Heap** (courbe plate) |
 | **Latence Cockpit** | Traitement complet d'un message reçu, calcul géospatial et rendu en **< 30 millisecondes** |
-| **ATC** | Fusion déterministe, snapshots cohérents et diffusion UDP non bloquante ; pas de contrainte stricte à 45 Mo |
+| **ATC** | Agrégation déterministe, snapshots cohérents et traitement UDP non bloquant |
 
 ---
 
@@ -111,8 +117,6 @@ Afin de garantir la compatibilité du système avec les standards cartographique
 - Pour cette démonstration grand public, l'interface est concrétisée par la bibliothèque open-source **Mapsforge** (ou **Osmdroid**), configurée pour lire localement un fichier de carte pré-téléchargé au format `.map` (région Nouvelle-Aquitaine).
 - Cette modularité permet de basculer sur n'importe quel autre SDK cartographique propriétaire par simple injection de dépendance, sans modifier la logique métier sous-jacente.
 
-> 📸 *Capture de l'affichage cockpit (région Nouvelle-Aquitaine · Mont-de-Marsan) à venir*
-
 ---
 
 ## 5. Spécifications Fonctionnelles & Multithreading
@@ -121,14 +125,14 @@ Le système gère le traitement des flux de manière hautement asynchrone :
 
 ### Collecte Concurrente (ATC Sol)
 
-Le Système de Traitement Central dédie un thread à chaque source radar pour écouter en parallèle et intercepter les données de positionnement sans interférence.
+Le Système de Traitement Central dédie un thread à chaque flux provenant des récepteurs au sol pour écouter en parallèle et intercepter les données de positionnement sans interférence.
 
 ### Pipeline d'Affichage (Cockpit)
 
 | Thread | Rôle |
 |---|---|
-| **Thread Réseau** | Intercepte en continu les paquets de données (positions des pistes et limites des zones d'exclusion). |
-| **Thread de Calcul (Worker)** | Décode les trames et calcule l'intersection géospatiale (algorithme *Point-in-Polygon* reposant sur la formule de **Haversine**) pour détecter si un aéronef pénètre une zone interdite. |
+| **Thread Réseau** | Intercepte en continu les paquets de données ADS-B provenant directement des avions à portée. |
+| **Thread de Calcul (Worker)** | Décode les trames et calcule l'intersection géospatiale (algorithme *Point-in-Polygon* reposant sur la formule de **Haversine**) avec les No-Fly Zones stockées localement pour détecter si un aéronef pénètre une zone interdite. |
 | **Thread UI** | Consomme les données prêtes pour mettre à jour la carte en maintenant un taux de rafraîchissement fluide de **30 FPS** minimum. |
 
 ---
@@ -153,31 +157,59 @@ Ce protocole valide le comportement du système en conditions réelles d'utilisa
 
 ### Configuration de l'environnement
 
-La démonstration s'effectue en environnement isolé : un PC portable (Système de Traitement Central ATC) communique avec une tablette Android (Cockpit) privée de toute connexion Internet. Les deux machines interagissent via un point d'accès Wi-Fi local fermé.
+🏗️ Architecture de démonstration
 
-> 📸 *Captures de la démonstration à venir*
+✈️ Simulateurs d'aéronefs
 
----
+- Émettent périodiquement des trames ADS-B en diffusion UDP.
+- Représentent les aéronefs présents dans l'espace aérien simulé.
 
+📱 Tablette Android (Cockpit)
+
+- Reçoit directement les émissions ADS-B simulées.
+- Affiche les informations de trafic à bord de l'aéronef.
+- Fonctionne de manière autonome, sans dépendre du système ATC.
+
+📡 Stations de réception au sol
+
+- Captent les mêmes émissions ADS-B que la tablette Android.
+- Représentent des récepteurs de surveillance déployés au sol.
+
+🖥️ Système central ATC
+
+- Agrège les données provenant des stations de réception.
+- Assure le suivi des pistes aériennes.
+- Fournit une vue globale du trafic aérien simulé.
+```
+[Aéronefs simulés]
+        |
+        | ADS-B (UDP)
+        |
+        +------------------> [Cockpit Android]
+        |
+        +--> [Station Sol 1] --\
+        +--> [Station Sol 2] ----> [ATC Central]
+        +--> [Station Sol 3] --/
+```
 <details>
 <summary><b>Phase 1 — Le Démarrage "À Froid"</b> · Vitesse et Autonomie</summary>
 
 | Élément | Description |
 |---|---|
 | **Action** | Lancement de l'application sur la tablette déconnectée. |
-| **Résultat** | Rendu visuel immédiat (< 1s) de la topographie de la Nouvelle-Aquitaine centrée sur la zone aéronautique de Mont-de-Marsan, de manière 100 % autonome. |
-| **Validation** | Le chargement SIG autonome et la rapidité de démarrage sont validés. |
+| **Résultat** | Rendu visuel immédiat (< 1s) de la topographie de la Nouvelle-Aquitaine centrée sur la zone aéronautique de Mont-de-Marsan, ainsi que le tracé des No-Fly Zones, de manière 100 % autonome. |
+| **Validation** | Le chargement SIG autonome, la lecture des zones d'exclusion locales et la rapidité de démarrage sont validés. |
 
 </details>
 
 <details>
-<summary><b>Phase 2 — L'Activation des Flux Radars</b> · Concurrence</summary>
+<summary><b>Phase 2 — L'Activation des Flux ADS-B</b> · Concurrence</summary>
 
 | Élément | Description |
 |---|---|
-| **Action** | Démarrage du simulateur de radars sol sur le Système de Traitement Central. Envoi simultané de la configuration géométrique de la zone de non-survol (No-Fly Zone) et des trajectoires de **50 cibles mobiles**. |
-| **Résultat** | Le polygone de sécurité se dessine à l'écran, immédiatement suivi par l'apparition et le déplacement fluide et asynchrone des 50 appareils aériens. |
-| **Validation** | La réception réseau asynchrone par thread dédié et l'affichage concurrent fonctionnent sans conflit. |
+| **Action** | Lancement de la simulation de vol des aéronefs environnants. Émission en continu de trajectoires ADS-B de **50 cibles mobiles**. |
+| **Résultat** | Les 50 appareils aériens apparaissent et se déplacent de façon fluide et asynchrone directement sur la carte de la tablette grâce au flux Air-Air, tandis que l'ATC affiche la même situation globale grâce aux récepteurs sol. |
+| **Validation** | La réception réseau asynchrone par thread dédié et le décodage direct du broadcast fonctionnent sans conflit. |
 
 </details>
 
@@ -197,19 +229,19 @@ La démonstration s'effectue en environnement isolé : un PC portable (Système 
 
 | Élément | Description |
 |---|---|
-| **Action** | Le scénario amène une piste identifiée comme suspecte (couleur rouge) à franchir la frontière de la zone de non-survol. |
-| **Résultat** | À la milliseconde précise du franchissement, l'icône de l'appareil clignote intensément et une alerte de sécurité s'affiche instantanément (< 30 ms) sur la console du cockpit. |
-| **Validation** | Les algorithmes de projection et d'intersection géospatiale à basse latence sont validés. |
+| **Action** | Le scénario amène une piste ADS-B identifiée comme suspecte (couleur rouge) à franchir la frontière de la zone de non-survol stockée localement. |
+| **Résultat** | À la milliseconde précise du franchissement, l'icône de l'appareil clignote intensément et une alerte de sécurité s'affiche instantanément (< 30 ms) sur l'écran du cockpit grâce au calcul embarqué local. |
+| **Validation** | Les algorithmes de projection et d'intersection géospatiale à basse latence s'exécutant de manière autonome dans le cockpit sont validés. |
 
 </details>
 
 <details>
-<summary><b>Phase 5 — Résilience aux Perturbations</b> · Robustesse Sûreté</summary>
+<summary><b>Phase 5 — Résilience et Autonomie</b> · Robustesse Sûreté</summary>
 
 | Élément | Description |
 |---|---|
-| **Action** | Extinction brutale du Système de Traitement Central ATC au milieu des opérations pour simuler une perte de liaison ou un brouillage. |
-| **Résultat** | L'application Android ne plante pas. Un voyant de diagnostic passe au rouge ("FLUX COMPROMIS") et les pistes s'immobilisent sur leur dernière coordonnée valide. Dès le redémarrage du serveur, le flux est capté à nouveau et les appareils reprennent leur course de façon transparente. |
-| **Validation** | La couche réseau isole la panne, le cockpit conserve le dernier snapshot valide et la tolérance aux perturbations est confirmée. |
+| **Action** | Extinction brutale du Système de Traitement Central ATC ou défaillance du segment de réception sol au milieu des opérations. |
+| **Résultat** | L'application Android (Cockpit) ne subit aucun impact, ne plante pas et continue de rafraîchir en temps réel la position des avions environnants grâce à la liaison ADS-B Air-Air directe. |
+| **Validation** | L'indépendance critique du cockpit vis-à-vis de l'ATC pour les fonctions anti-collision vitales est confirmée. |
 
 </details>
