@@ -35,6 +35,9 @@ Pour modéliser cet écosystème en temps réel, l'architecture du projet est d�
 > 💡 **Le Paradoxe du Contexte Militaire :**
 > Dans la vraie vie, les militaires désactivent l'ADS-B en mission opérationnelle car ce signal est public, non chiffré, et facilement falsifiable (*spoofing*). Un aéronef militaire en opération coupe son émission ADS-B pour rester furtif et utilise à la place une **Liaison de Données Tactiques** (comme la *Liaison 16*), hautement sécurisée, chiffrée et résistante au brouillage pour ses échanges Air-Air et Air-Sol. L'implémentation de l'ADS-B dans ce projet sert de démonstrateur technologique civilo-militaire pour valider l'agrégation de données de surveillance et la cartographie dynamique en temps réel.
 
+> 💡 **Note sur le choix de l'UDP & l'émulation radio :**
+> Dans le monde réel, l'ADS-B n'utilise ni l'UDP ni le TCP dans le ciel, car il n'y a pas de réseau Internet ou IP entre les avions : les données transitent par des ondes radio pures sur la fréquence 1090 MHz. Dans le cadre de cette simulation informatique, le choix du protocole **UDP** est une analogie logicielle parfaite de la physique radio. Tout comme une onde, l'UDP fonctionne en mode *« Fire and Forget »* (tirer et oublier) : l'aéronef diffuse ses paquets à la volée sans se soucier de savoir qui écoute et sans attendre d'accusé de réception. En cas de perte de paquet, aucune retransmission n'est tentée (contrairement au TCP) car une position géographique reçue en retard est obsolète et dangereuse. Le système attend simplement la trame suivante, garantissant la fluidité et la très basse latence indispensables aux systèmes critiques.
+
 ### 📸 Aperçu Global du Système
 
 <table width="100%">
