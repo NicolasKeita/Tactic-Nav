@@ -33,8 +33,7 @@ Pour modéliser cet écosystème en temps réel, l'architecture du projet est d�
 *   **Le Système de Traitement Central (ATC)** : Un serveur en Java pur (Core) destiné aux opérateurs au sol. Il agrège les flux de données provenant de la multitude de stations sol connectées afin d'offrir une console centralisée de supervision et de contrôle du trafic aérien global.
 
 > 💡 **Le Paradoxe du Contexte Militaire :**
-> Dans la vraie vie, les militaires désactivent l'ADS-B en mission opérationnelle car ce signal est public, non chiffré, et facilement falsifiable (*spoofing*). Un aéronef militaire en opération coupe son émission ADS-B pour rester furtif et utilise à la place une **Liaison de Données Tactiques** (comme la *Liaison 16*), hautement sécurisée, chiffrée et résistante au brouillage pour ses échanges Air-Air et Air-Sol. L'implémentation de l'ADS-B dans ce projet sert de démonstrateur technologique civilo-militaire pour valider la gestion des flux à basse latence.
-
+> Dans la vraie vie, les militaires désactivent l'ADS-B en mission opérationnelle car ce signal est public, non chiffré, et facilement falsifiable (*spoofing*). Un aéronef militaire en opération coupe son émission ADS-B pour rester furtif et utilise à la place une **Liaison de Données Tactiques** (comme la *Liaison 16*), hautement sécurisée, chiffrée et résistante au brouillage pour ses échanges Air-Air et Air-Sol. L'implémentation de l'ADS-B dans ce projet sert de démonstrateur technologique civilo-militaire pour valider l'agrégation de données de surveillance et la cartographie dynamique en temps réel.
 
 ### 📸 Aperçu Global du Système
 
