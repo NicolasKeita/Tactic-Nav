@@ -47,6 +47,48 @@ public final class TrackDatagramDecoderTest {
         );
     }
 
+    @Test
+    public void decodeAcceptsZeroTrackPacket() throws Exception {
+        ByteBuffer buffer = ByteBuffer.allocate(TrackDatagramDecoder.HEADER_BYTES)
+                .order(ByteOrder.BIG_ENDIAN);
+        buffer.putInt(TrackDatagramDecoder.MAGIC);
+        buffer.putLong(1L);
+        buffer.putLong(100L);
+        buffer.putShort((short) 0);
+
+        TacticalSnapshot snapshot = new TrackDatagramDecoder().decode(buffer.array(), buffer.array().length, Collections.emptyList());
+
+        assertEquals(0, snapshot.trackCount());
+        assertEquals(1L, snapshot.sequenceNumber());
+    }
+
+    @Test
+    public void decodeRejectsTooManyTracks() {
+        ByteBuffer buffer = ByteBuffer.allocate(TrackDatagramDecoder.HEADER_BYTES + (TrackDatagramDecoder.MAX_TRACKS + 1) * TrackDatagramDecoder.TRACK_BYTES)
+                .order(ByteOrder.BIG_ENDIAN);
+        buffer.putInt(TrackDatagramDecoder.MAGIC);
+        buffer.putLong(2L);
+        buffer.putLong(100L);
+        buffer.putShort((short) (TrackDatagramDecoder.MAX_TRACKS + 1));
+
+        assertThrows(
+                TrackDatagramDecoder.DecodeException.class,
+                () -> new TrackDatagramDecoder().decode(buffer.array(), buffer.array().length, Collections.emptyList())
+        );
+    }
+
+    @Test
+    public void decodeRejectsNegativeTimestamp() {
+        byte[] packet = oneTrackPacket();
+        ByteBuffer buffer = ByteBuffer.wrap(packet).order(ByteOrder.BIG_ENDIAN);
+        buffer.putLong(Integer.BYTES, -1L);
+
+        assertThrows(
+                TrackDatagramDecoder.DecodeException.class,
+                () -> new TrackDatagramDecoder().decode(buffer.array(), buffer.array().length, Collections.emptyList())
+        );
+    }
+
     private static byte[] oneTrackPacket() {
         ByteBuffer buffer = ByteBuffer.allocate(TrackDatagramDecoder.HEADER_BYTES + TrackDatagramDecoder.TRACK_BYTES)
                 .order(ByteOrder.BIG_ENDIAN);

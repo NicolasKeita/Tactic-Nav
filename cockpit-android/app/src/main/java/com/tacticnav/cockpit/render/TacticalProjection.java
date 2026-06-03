@@ -19,7 +19,10 @@ public final class TacticalProjection {
             double latitudeSpan,
             double longitudeSpan
     ) {
-        this.bounds.set(bounds);
+        this.bounds.left = bounds.left;
+        this.bounds.top = bounds.top;
+        this.bounds.right = bounds.right;
+        this.bounds.bottom = bounds.bottom;
         this.centerLatitude = centerLatitude;
         this.centerLongitude = centerLongitude;
         this.latitudeSpan = latitudeSpan;
@@ -32,9 +35,12 @@ public final class TacticalProjection {
         double minLongitude = centerLongitude - longitudeSpan / 2.0;
         double maxLongitude = centerLongitude + longitudeSpan / 2.0;
 
-        float x = bounds.left + (float) ((point.longitude() - minLongitude) / (maxLongitude - minLongitude) * bounds.width());
-        float y = bounds.bottom - (float) ((point.latitude() - minLatitude) / (maxLatitude - minLatitude) * bounds.height());
-        out.set(x, y);
+        float width = bounds.right - bounds.left;
+        float height = bounds.bottom - bounds.top;
+        float x = bounds.left + (float) ((point.longitude() - minLongitude) / (maxLongitude - minLongitude) * width);
+        float y = bounds.bottom - (float) ((point.latitude() - minLatitude) / (maxLatitude - minLatitude) * height);
+        out.x = x;
+        out.y = y;
         return out;
     }
 

@@ -4,6 +4,7 @@ import com.tacticnav.cockpit.data.AtcTrackSource;
 import com.tacticnav.cockpit.domain.TacticalSnapshot;
 import com.tacticnav.cockpit.processing.SituationProcessor;
 
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -14,25 +15,19 @@ public final class CockpitController implements AtcTrackSource.Listener {
     private final SituationProcessor processor;
     private final AtomicBoolean running = new AtomicBoolean(false);
 
-    private ExecutorService worker;
-    private Listener listener;
+    private volatile ExecutorService worker;
+    private volatile Listener listener;
 
     public CockpitController(AtcTrackSource source, SituationProcessor processor) {
-        if (source == null || processor == null) {
-            throw new IllegalArgumentException("source and processor cannot be null");
-        }
-        this.source = source;
-        this.processor = processor;
+        this.source = Objects.requireNonNull(source, "source cannot be null");
+        this.processor = Objects.requireNonNull(processor, "processor cannot be null");
     }
 
     public void start(Listener listener) {
-        if (listener == null) {
-            throw new IllegalArgumentException("listener cannot be null");
-        }
+        this.listener = Objects.requireNonNull(listener, "listener cannot be null");
         if (!running.compareAndSet(false, true)) {
             return;
         }
-        this.listener = listener;
         this.worker = Executors.newSingleThreadExecutor(new NamedThreadFactory("cockpit-situation-worker"));
         source.start(this);
     }

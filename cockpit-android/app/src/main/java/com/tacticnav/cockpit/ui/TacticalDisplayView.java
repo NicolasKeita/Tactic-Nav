@@ -276,6 +276,8 @@ public final class TacticalDisplayView extends View {
         canvas.drawText(alert.trackId(), scratch.left + dp(50.0f), scratch.top + dp(54.0f), paint);
         paint.setColor(ColorPalette.CRITICAL);
         canvas.drawText(alert.zoneId(), scratch.left + dp(50.0f), scratch.top + dp(72.0f), paint);
+        paint.setColor(ColorPalette.WARNING);
+        canvas.drawText(alert.message(), scratch.left + dp(50.0f), scratch.top + dp(92.0f), paint);
 
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(dp(2.0f));
