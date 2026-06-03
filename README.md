@@ -24,13 +24,17 @@
 
 Dans le cadre de la modernisation des systèmes avioniques d'aéronefs militaires, le projet **TACTIC-NAV** vise à développer un prototype de système d'affichage tactique et de gestion des flux de données cartographiques en temps réel.
 
+Le système s'appuie sur la technologie **ADS-B** (*Automatic Dependent Surveillance-Broadcast*). Il s'agit d'un système de surveillance coopérative dans lequel les aéronefs déterminent leur position par navigation satellite (GPS) et la diffusent périodiquement par broadcast omnidirectionnel (sans destinataire ciblé) à destination des autres avions et des stations au sol à portée.
 
-Le **Système de Traitement Central (ATC)** : Un serveur en Java pur qui agrège en continu les flux de données ADS-B interceptés et retransmis par les nombreux récepteurs au sol à portée. Il offre une console de supervision et de contrôle du trafic aérien global pour les opérateurs sol.
+Pour modéliser cet écosystème en temps réel, l'architecture du projet est découpée en trois entités distinctes :
 
-Le **Terminal Embarqué (Cockpit)** : Une application Java Android 13 native installée sur une tablette. Elle capte directement les trames ADS-B diffusées en mode Air-Air par les avions environnants (Avion A, B, C, D) pour restituer visuellement la situation tactique en temps réel. Le fond de carte épuré ainsi que les limites des zones d'exclusion (No-Fly Zones) sont stockés à 100% en local (Offline, sans aucune dépendance à Internet ni au serveur ATC).
+*   **Le Terminal Embarqué (Cockpit de l'Avion A)** : Une application Java Android 13 native installée sur tablette tactile. Elle intercepte directement les trames ADS-B diffusées en mode Air-Air par les avions environnants (Avions B, C, D) pour afficher instantanément une situation tactique anti-collision. Pour garantir une autonomie critique totale, le fond de carte ainsi que les limites des zones d'exclusion (*No-Fly Zones*) sont stockés à 100% en local (Offline), éliminant toute dépendance à l'ATC.
+*   **Les Stations Sol (Récepteurs)** *(implémentées dans le projet sous la forme d'un programme indépendant)* : Réparties géographiquement, ces antennes captent le segment de diffusion Air-Sol des trames ADS-B émises par le trafic aérien et les retransmettent en continu au centre de contrôle via le protocole UDP.
+*   **Le Système de Traitement Central (ATC)** : Un serveur en Java pur (Core) destiné aux opérateurs au sol. Il agrège les flux de données provenant de la multitude de stations sol connectées afin d'offrir une console centralisée de supervision et de contrôle du trafic aérien global.
 
-> 💡 **Note sur le Contexte Militaire & Paradoxe de l'ADS-B :**
-> Dans la vraie vie, les militaires détestent l'ADS-B en mission car il est public, non chiffré, et facilement falsifiable (spoofing). Un avion militaire en opération coupe son ADS-B (mode furtif) et utilise à la place une Liaison de Données Tactiques (comme la Liaison 16), qui permet de faire du Air-Air ET du Ground-Air de manière hautement sécurisée et chiffrée. L'implémentation de l'ADS-B ici sert de démonstrateur technologique civilo-militaire pour valider la gestion des flux temps réel.
+> 💡 **Le Paradoxe du Contexte Militaire :**
+> Dans la vraie vie, les militaires désactivent l'ADS-B en mission opérationnelle car ce signal est public, non chiffré, et facilement falsifiable (*spoofing*). Un aéronef militaire en opération coupe son émission ADS-B pour rester furtif et utilise à la place une **Liaison de Données Tactiques** (comme la *Liaison 16*), hautement sécurisée, chiffrée et résistante au brouillage pour ses échanges Air-Air et Air-Sol. L'implémentation de l'ADS-B dans ce projet sert de démonstrateur technologique civilo-militaire pour valider la gestion des flux à basse latence.
+
 
 ### 📸 Aperçu Global du Système
 
