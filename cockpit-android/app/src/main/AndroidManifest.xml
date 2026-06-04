@@ -12,7 +12,7 @@
 
         <meta-data
             android:name="com.tacticnav.cockpit.TRACK_SOURCE"
-            android:value="SIMULATED" />
+            android:value="ADSB" />
 
         <activity
             android:name=".CockpitActivity"

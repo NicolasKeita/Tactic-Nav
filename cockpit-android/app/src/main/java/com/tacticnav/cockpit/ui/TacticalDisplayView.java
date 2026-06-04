@@ -6,6 +6,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
 import android.os.SystemClock;
+import android.view.MotionEvent;
 import android.view.View;
 
 import com.tacticnav.cockpit.domain.LinkStatus;
@@ -38,14 +39,47 @@ public final class TacticalDisplayView extends View {
 
     private TacticalSnapshot snapshot;
     private String diagnostic = "";
+    private OnSysSettingsListener sysSettingsListener;
+
+    public interface OnSysSettingsListener {
+        void onSysSettingsRequested();
+    }
 
     public TacticalDisplayView(Context context) {
         super(context);
         density = context.getResources().getDisplayMetrics().density;
         mapEngine = new CanvasTacticalMapEngine(density);
         snapshot = TacticalSnapshot.empty(java.lang.System.currentTimeMillis());
-        setFocusable(false);
+        setFocusable(true);
         setWillNotDraw(false);
+    }
+
+    public void setOnSysSettingsListener(OnSysSettingsListener listener) {
+        this.sysSettingsListener = listener;
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if (event.getAction() == MotionEvent.ACTION_DOWN) {
+            float x = event.getX();
+            float y = event.getY();
+            if (isSysButtonHit(x, y)) {
+                if (sysSettingsListener != null) {
+                    sysSettingsListener.onSysSettingsRequested();
+                }
+                return true;
+            }
+        }
+        return super.onTouchEvent(event);
+    }
+
+    private boolean isSysButtonHit(float x, float y) {
+        layoutRegions(getWidth(), getHeight());
+        float itemHeight = dp(72.0f);
+        int sysIndex = 4;
+        float top = leftRail.top + sysIndex * itemHeight;
+        return x >= leftRail.left && x <= leftRail.right
+                && y >= top && y <= top + itemHeight;
     }
 
     public void setSnapshot(TacticalSnapshot snapshot) {
