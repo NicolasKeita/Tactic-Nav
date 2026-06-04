@@ -27,3 +27,17 @@ android {
 dependencies {
     testImplementation "junit:junit:4.13.2"
 }
+
+tasks.register("copyDebugApk", Copy) {
+    from(layout.buildDirectory.dir("outputs/apk/debug"))
+    include("*.apk")
+    rename(".*\\.apk", "Tactic-Nav-Cockpit-Android.apk")
+
+    into(rootProject.layout.projectDirectory.dir("../bin"))
+}
+
+afterEvaluate {
+    tasks.named("assembleDebug") {
+        finalizedBy(tasks.named("copyDebugApk"))
+    }
+}

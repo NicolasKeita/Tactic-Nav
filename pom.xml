@@ -113,6 +113,7 @@
                 <module>nav-protocol</module>
                 <module>ground-station</module>
                 <module>atc-server</module>
+                <module>cockpit-android</module>
             </modules>
         </profile>
 
@@ -123,6 +124,7 @@
                 <module>nav-protocol</module>
                 <module>ground-station</module>
                 <module>atc-server</module>
+                <module>cockpit-android</module>
             </modules>
         </profile>
 
@@ -132,6 +134,7 @@
                 <module>nav-protocol</module>
                 <module>ground-station</module>
                 <module>atc-server</module>
+                <module>cockpit-android</module>
             </modules>
         </profile>
 
@@ -142,6 +145,7 @@
                 <module>nav-protocol</module>
                 <module>ground-station</module>
                 <module>atc-server</module>
+                <module>cockpit-android</module>
             </modules>
         </profile>
     </profiles>
