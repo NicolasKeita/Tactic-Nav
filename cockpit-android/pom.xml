@@ -69,6 +69,27 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>copy-apk-to-bin</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <mkdir dir="${maven.multiModuleProjectDirectory}/bin"/>
+                                <copy file="${project.basedir}/app/build/outputs/apk/debug/app-debug.apk"
+                                      tofile="${maven.multiModuleProjectDirectory}/bin/tactic-nav-cockpit.apk"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 

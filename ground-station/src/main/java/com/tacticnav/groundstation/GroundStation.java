@@ -8,20 +8,21 @@ import java.io.InputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
+import java.net.Inet4Address;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 /**
- * Simple ground station simulator that emits custom ADS-B UDP packets and relays them to the ATC.
- * The packets are 112 bytes long and follow a home-grown simplified ADS-B payload layout.
+ * Simple ground station that listens for incoming ADS-B UDP packets and relays
+ * them to the ATC server. Displays its own IP address and listening port on startup.
  */
 public class GroundStation {
 
@@ -39,7 +40,7 @@ public class GroundStation {
         double speed; // m/s
 
         void step(double dtSeconds) {
-            double metersPerDegree = 111320.0; // approximate conversion
+            double metersPerDegree = 111320.0;
             double distance = speed * dtSeconds;
             double dLat = distance * Math.cos(Math.toRadians(heading)) / metersPerDegree;
             double dLon = distance * Math.sin(Math.toRadians(heading)) / (metersPerDegree * Math.max(0.0001, Math.cos(Math.toRadians(lat))));
@@ -54,49 +55,55 @@ public class GroundStation {
             if (in != null) cfg.load(in);
         }
 
+        int listenPort = Integer.parseInt(getArgOrProp(args, "--listen-port", "listen.port", cfg, "15000"));
         String forwardHost = getArgOrProp(args, "--host", "forward.host", cfg, "127.0.0.1");
         int forwardPort = Integer.parseInt(getArgOrProp(args, "--port", "forward.port", cfg, "15001"));
-        int count = Integer.parseInt(getArgOrProp(args, "--count", "simulator.count", cfg, "8"));
-        long intervalMs = Long.parseLong(getArgOrProp(args, "--interval", "simulator.interval.ms", cfg, "500"));
         String stationId = getArgOrProp(args, "--id", "station.id", cfg, "GS-001");
 
-        System.out.printf("GroundStation %s -> %s:%d | sim.count=%d interval=%dms%n", stationId, forwardHost, forwardPort, count, intervalMs);
+        String localIp = findLocalIp();
+        System.out.printf("GroundStation %s listening on %s:%d -> %s:%d%n",
+                stationId, localIp, listenPort, forwardHost, forwardPort);
 
-        List<Aircraft> acList = makeAircraft(count);
-        DatagramSocket sock = new DatagramSocket();
-        InetAddress addr = InetAddress.getByName(forwardHost);
-        byte[] buffer = new byte[AdsbPacketCodec.PACKET_SIZE];
+        try (DatagramSocket listenSock = new DatagramSocket(listenPort)) {
+            InetAddress forwardAddr = InetAddress.getByName(forwardHost);
+            byte[] buffer = new byte[AdsbPacketCodec.PACKET_SIZE];
 
-        ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
-        final double dtSeconds = intervalMs / 1000.0;
-        final Random rnd = new Random();
+            while (true) {
+                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                listenSock.receive(packet);
 
-        exec.scheduleAtFixedRate(() -> {
-            try {
-                for (Aircraft ac : acList) {
-                    ac.step(dtSeconds);
-                    serializeAdsb(ac, stationId, buffer);
-                    DatagramPacket packet = new DatagramPacket(buffer, buffer.length, addr, forwardPort);
-                    sock.send(packet);
-                }
-                if (rnd.nextDouble() < 0.3) {
-                    Aircraft a = acList.get(rnd.nextInt(acList.size()));
-                    a.heading = (a.heading + (rnd.nextDouble() * 40.0 - 20.0) + 360.0) % 360.0;
-                    a.speed = Math.max(80.0, Math.min(320.0, a.speed + rnd.nextDouble() * 20.0 - 10.0));
-                }
-            } catch (IOException e) {
-                System.err.println("Send error: " + e.getMessage());
+                String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                System.out.printf("[%s] %s Received %d bytes%n",
+                        stationId, timestamp, packet.getLength());
+
+                DatagramPacket forwardPacket = new DatagramPacket(
+                        packet.getData(), packet.getLength(), forwardAddr, forwardPort);
+                listenSock.send(forwardPacket);
             }
-        }, 0, intervalMs, TimeUnit.MILLISECONDS);
-
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            exec.shutdownNow();
-            sock.close();
-            System.out.println("GroundStation stopped.");
-        }));
+        } catch (IOException e) {
+            System.err.println("GroundStation error: " + e.getMessage());
+        }
     }
 
-    private static void serializeAdsb(Aircraft aircraft, String stationId, byte[] buffer) {
+    private static String findLocalIp() {
+        try {
+            for (NetworkInterface ni : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                if (ni.isLoopback() || !ni.isUp()) continue;
+                for (InetAddress addr : Collections.list(ni.getInetAddresses())) {
+                    if (addr instanceof Inet4Address) {
+                        return addr.getHostAddress();
+                    }
+                }
+            }
+        } catch (SocketException e) {
+            // fallback
+        }
+        return "127.0.0.1";
+    }
+
+    // -- Methods below are used by unit / functional tests via reflection --
+
+    static void serializeAdsb(Aircraft aircraft, String stationId, byte[] buffer) {
         double dx = (aircraft.lon - BASE_LON) * Math.cos(Math.toRadians((aircraft.lat + BASE_LAT) / 2.0)) * 111320.0;
         double dy = (aircraft.lat - BASE_LAT) * 111320.0;
         double horizontalDistance = Math.hypot(dx, dy);
@@ -127,7 +134,7 @@ public class GroundStation {
         return props.getProperty(propName, def);
     }
 
-    private static List<Aircraft> makeAircraft(int count) {
+    static List<Aircraft> makeAircraft(int count) {
         List<Aircraft> list = new ArrayList<>();
         Random rnd = new Random(42);
         for (int i = 0; i < count; i++) {
