@@ -97,11 +97,20 @@ android {
 
     testOptions {
         unitTests.returnDefaultValues = true
+        managedDevices {
+            localDevices.create("pixel6api34") {
+                device = "Pixel 6"
+                apiLevel = 34
+                systemImageSource = "google"
+            }
+        }
     }
 }
 
 dependencies {
     testImplementation "junit:junit:4.13.2"
+    androidTestImplementation "androidx.test.ext:junit:1.1.5"
+    androidTestImplementation "androidx.test.espresso:espresso-core:3.5.1"
 }
 
 tasks.register("checkEmbeddedBudgets") {
@@ -177,7 +186,7 @@ tasks.register("printEmbeddedBudgetSummary") {
         logger.lifecycle("  DEX: ${formatMegabytes(((Number) data.dexBytes).longValue())}")
         logger.lifecycle("  Hot-path allocations: PASS")
         logger.lifecycle("  Runtime heap/FPS: NOT RUN in default verify")
-        logger.lifecycle("  Run .\\mvnw.cmd verify -Pandroid-runtime-verify with a connected Android device/emulator for measured heap/FPS.")
+        logger.lifecycle("  Run ./gradlew pixel6api34DebugAndroidTest to execute instrumented tests on the managed virtual device.")
         logger.lifecycle("")
     }
 }
@@ -207,25 +216,6 @@ tasks.register("checkHotPathAllocations") {
     }
 }
 
-tasks.register("requireConnectedAndroidDevice") {
-    group = "verification"
-    description = "Fails unless exactly one Android device or emulator is connected."
-
-    doLast {
-        def devices = connectedAndroidDevices()
-        if (devices.isEmpty()) {
-            throw new GradleException("Android runtime verification requires a connected Android device or emulator. Start an emulator or connect a device, then rerun .\\mvnw.cmd verify -Pandroid-runtime-verify.")
-        }
-        if (devices.size() > 1) {
-            throw new GradleException("Android runtime verification requires exactly one connected Android device or emulator, but found: ${devices.join(", ")}")
-        }
-        logger.lifecycle("Android runtime verification device: ${devices[0]}")
-    }
-}
-
-tasks.matching { it.name == "connectedDebugAndroidTest" }.configureEach {
-    dependsOn("requireConnectedAndroidDevice")
-}
 
 tasks.register("pullCockpitRuntimeBudgetReport") {
     group = "verification"
