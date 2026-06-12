@@ -30,6 +30,34 @@
                 <gradle.executable>${project.basedir}/gradlew.bat</gradle.executable>
             </properties>
         </profile>
+        <profile>
+            <id>android-runtime-verify</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <id>android-runtime-budget-verify</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <workingDirectory>${project.basedir}</workingDirectory>
+                                    <executable>${gradle.executable}</executable>
+                                    <arguments>
+                                        <argument>verifyCockpitRuntimeBudgets</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 
     <build>
@@ -63,7 +91,8 @@
                             <workingDirectory>${project.basedir}</workingDirectory>
                             <executable>${gradle.executable}</executable>
                             <arguments>
-                                <argument>assembleDebug</argument>
+                                <argument>testDebugUnitTest</argument>
+                                <argument>printEmbeddedBudgetSummary</argument>
                             </arguments>
                         </configuration>
                     </execution>

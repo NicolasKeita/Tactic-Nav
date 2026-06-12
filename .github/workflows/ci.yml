@@ -37,3 +37,10 @@ jobs:
         with:
           name: spotbugs-report
           path: '**/target/site/spotbugs/'
+
+      - name: Upload cockpit embedded budget report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cockpit-embedded-budget-report
+          path: cockpit-android/app/build/reports/embedded-budgets/

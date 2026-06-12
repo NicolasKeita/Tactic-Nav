@@ -2,9 +2,79 @@ plugins {
     id "com.android.application"
 }
 
+def embeddedBudgetFile = rootProject.layout.projectDirectory.file("embedded-budgets.properties")
+def embeddedBudgetReportDir = layout.buildDirectory.dir("reports/embedded-budgets")
+def embeddedBudgetReportFile = embeddedBudgetReportDir.map { it.file("embedded-budgets.json") }
+def cockpitRuntimeBudgetReportFile = embeddedBudgetReportDir.map { it.file("cockpit-runtime-budget-report.json") }
+
+long megabytesToBytes(String value) {
+    return new BigDecimal(value).multiply(new BigDecimal(1024 * 1024)).longValue()
+}
+
+String formatMegabytes(long bytes) {
+    return String.format(java.util.Locale.US, "%.2f MB", bytes / (1024.0d * 1024.0d))
+}
+
+String formatNumber(double value) {
+    return String.format(java.util.Locale.US, "%.2f", value)
+}
+
+String passFail(boolean passed) {
+    return passed ? "PASS" : "FAIL"
+}
+
+def loadEmbeddedBudgetProperties = {
+    def file = embeddedBudgetFile.asFile
+    if (!file.exists()) {
+        throw new GradleException("Missing embedded budget file: ${file}")
+    }
+    def properties = new java.util.Properties()
+    file.withInputStream { properties.load(it) }
+    return properties
+}
+
+def embeddedBudgets = loadEmbeddedBudgetProperties()
+
+def runAdb = { List<String> args, int timeoutSeconds ->
+    def command = [android.adbExecutable.absolutePath] + args
+    def process = new ProcessBuilder(command).start()
+    def stdout = new ByteArrayOutputStream()
+    def stderr = new ByteArrayOutputStream()
+    def stdoutThread = Thread.start { process.inputStream.transferTo(stdout) }
+    def stderrThread = Thread.start { process.errorStream.transferTo(stderr) }
+
+    if (!process.waitFor(timeoutSeconds, java.util.concurrent.TimeUnit.SECONDS)) {
+        process.destroyForcibly()
+        stdoutThread.join(1000L)
+        stderrThread.join(1000L)
+        throw new GradleException("Timed out after ${timeoutSeconds}s while running adb ${args.join(" ")}")
+    }
+
+    stdoutThread.join(1000L)
+    stderrThread.join(1000L)
+    return [
+            exitValue: process.exitValue(),
+            stdout   : stdout.toString("UTF-8"),
+            stderr   : stderr.toString("UTF-8")
+    ]
+}
+
+def connectedAndroidDevices = {
+    def result = runAdb(["devices"], 15)
+    if (result.exitValue != 0) {
+        throw new GradleException("Unable to list Android devices with adb: ${result.stderr}")
+    }
+    return result.stdout
+            .readLines()
+            .findAll { it.endsWith("\tdevice") }
+            .collect { it.split("\\s+")[0] }
+}
+
 android {
     namespace = "com.tacticnav.cockpit"
     compileSdk = 33
+    useLibrary "android.test.runner"
+    useLibrary "android.test.base"
 
     defaultConfig {
         applicationId = "com.tacticnav.cockpit"
@@ -12,6 +82,12 @@ android {
         targetSdk = 33
         versionCode = 1
         versionName = "0.1.0"
+        testInstrumentationRunner = "android.test.InstrumentationTestRunner"
+        testInstrumentationRunnerArguments["warmupMs"] = embeddedBudgets.getProperty("instrumentation.warmupMs", "30000")
+        testInstrumentationRunnerArguments["durationMs"] = embeddedBudgets.getProperty("instrumentation.durationMs", "180000")
+        testInstrumentationRunnerArguments["heapMaxMb"] = embeddedBudgets.getProperty("heap.maxMb", "45")
+        testInstrumentationRunnerArguments["heapGrowthMb"] = embeddedBudgets.getProperty("heap.postWarmupGrowthMb", "1")
+        testInstrumentationRunnerArguments["minFps"] = embeddedBudgets.getProperty("frame.minFps", "30")
     }
 
     compileOptions {
@@ -26,6 +102,192 @@ android {
 
 dependencies {
     testImplementation "junit:junit:4.13.2"
+}
+
+tasks.register("checkEmbeddedBudgets") {
+    group = "verification"
+    description = "Checks cockpit Android embedded build artifact budgets."
+    dependsOn("assembleDebug")
+
+    inputs.file(embeddedBudgetFile)
+    inputs.file(layout.buildDirectory.file("outputs/apk/debug/app-debug.apk"))
+    outputs.file(embeddedBudgetReportFile)
+
+    doLast {
+        def budgets = loadEmbeddedBudgetProperties()
+        def apk = layout.buildDirectory.file("outputs/apk/debug/app-debug.apk").get().asFile
+        if (!apk.exists()) {
+            throw new GradleException("Missing debug APK: ${apk}")
+        }
+
+        long apkMaxBytes = megabytesToBytes(budgets.getProperty("apk.debug.maxMb"))
+        long apkBytes = apk.length()
+        if (apkBytes > apkMaxBytes) {
+            throw new GradleException("Debug APK is ${apkBytes} bytes, over budget ${apkMaxBytes} bytes")
+        }
+
+        long dexBytes = 0L
+        long resourceBytes = 0L
+        def zip = new java.util.zip.ZipFile(apk)
+        try {
+            zip.entries().each { entry ->
+                if (entry.name.endsWith(".dex")) {
+                    dexBytes += entry.size
+                }
+                if (entry.name.startsWith("res/") || entry.name == "resources.arsc") {
+                    resourceBytes += entry.size
+                }
+            }
+        } finally {
+            zip.close()
+        }
+
+        def reportDir = embeddedBudgetReportDir.get().asFile
+        reportDir.mkdirs()
+        def report = embeddedBudgetReportFile.get().asFile
+        report.text = """{
+  "apkDebugBytes": ${apkBytes},
+  "apkDebugBudgetBytes": ${apkMaxBytes},
+  "dexBytes": ${dexBytes},
+  "resourceBytes": ${resourceBytes},
+  "heapMaxMb": ${budgets.getProperty("heap.maxMb")},
+  "frameMinFps": ${budgets.getProperty("frame.minFps")}
+}
+"""
+        logger.lifecycle("Embedded budget report written to ${report}")
+    }
+}
+
+tasks.register("printEmbeddedBudgetSummary") {
+    group = "verification"
+    description = "Prints the default cockpit embedded budget summary."
+    dependsOn("checkHotPathAllocations")
+    dependsOn("checkEmbeddedBudgets")
+
+    inputs.file(embeddedBudgetReportFile)
+
+    doLast {
+        def report = embeddedBudgetReportFile.get().asFile
+        def data = new groovy.json.JsonSlurper().parse(report)
+        boolean apkPass = ((Number) data.apkDebugBytes).longValue() <= ((Number) data.apkDebugBudgetBytes).longValue()
+
+        logger.lifecycle("")
+        logger.lifecycle("Cockpit embedded build budgets:")
+        logger.lifecycle("  APK debug: ${formatMegabytes(((Number) data.apkDebugBytes).longValue())} / ${formatMegabytes(((Number) data.apkDebugBudgetBytes).longValue())} ${passFail(apkPass)}")
+        logger.lifecycle("  DEX: ${formatMegabytes(((Number) data.dexBytes).longValue())}")
+        logger.lifecycle("  Hot-path allocations: PASS")
+        logger.lifecycle("  Runtime heap/FPS: NOT RUN in default verify")
+        logger.lifecycle("  Run .\\mvnw.cmd verify -Pandroid-runtime-verify with a connected Android device/emulator for measured heap/FPS.")
+        logger.lifecycle("")
+    }
+}
+
+tasks.register("checkHotPathAllocations") {
+    group = "verification"
+    description = "Checks known allocation-heavy APIs in cockpit rendering hot paths."
+
+    def hotPathFiles = files(
+            "src/main/java/com/tacticnav/cockpit/ui/TacticalDisplayView.java",
+            "src/main/java/com/tacticnav/cockpit/render/CanvasTacticalMapEngine.java"
+    )
+    inputs.files(hotPathFiles)
+
+    doLast {
+        def violations = []
+        hotPathFiles.files.each { sourceFile ->
+            sourceFile.eachLine { line, number ->
+                if (line.contains("String.format(")) {
+                    violations.add("${sourceFile.name}:${number}: avoid String.format in cockpit render hot paths")
+                }
+            }
+        }
+        if (!violations.isEmpty()) {
+            throw new GradleException("Hot-path allocation check failed:\n" + violations.join("\n"))
+        }
+    }
+}
+
+tasks.register("requireConnectedAndroidDevice") {
+    group = "verification"
+    description = "Fails unless exactly one Android device or emulator is connected."
+
+    doLast {
+        def devices = connectedAndroidDevices()
+        if (devices.isEmpty()) {
+            throw new GradleException("Android runtime verification requires a connected Android device or emulator. Start an emulator or connect a device, then rerun .\\mvnw.cmd verify -Pandroid-runtime-verify.")
+        }
+        if (devices.size() > 1) {
+            throw new GradleException("Android runtime verification requires exactly one connected Android device or emulator, but found: ${devices.join(", ")}")
+        }
+        logger.lifecycle("Android runtime verification device: ${devices[0]}")
+    }
+}
+
+tasks.matching { it.name == "connectedDebugAndroidTest" }.configureEach {
+    dependsOn("requireConnectedAndroidDevice")
+}
+
+tasks.register("pullCockpitRuntimeBudgetReport") {
+    group = "verification"
+    description = "Pulls the cockpit runtime budget report from the connected debug app."
+    dependsOn("connectedDebugAndroidTest")
+
+    outputs.file(cockpitRuntimeBudgetReportFile)
+
+    doLast {
+        def report = cockpitRuntimeBudgetReportFile.get().asFile
+        report.parentFile.mkdirs()
+
+        def result = runAdb(["shell", "run-as", android.defaultConfig.applicationId, "cat", "files/cockpit-runtime-budget-report.json"], 15)
+        if (result.exitValue != 0) {
+            throw new GradleException("Unable to pull cockpit runtime budget report with adb run-as: ${result.stderr}")
+        }
+
+        report.text = result.stdout
+        logger.lifecycle("Cockpit runtime budget report written to ${report}")
+    }
+}
+
+tasks.register("printCockpitRuntimeBudgetSummary") {
+    group = "verification"
+    description = "Prints measured cockpit runtime heap and frame budget results."
+    dependsOn("pullCockpitRuntimeBudgetReport")
+
+    inputs.file(cockpitRuntimeBudgetReportFile)
+    inputs.file(embeddedBudgetFile)
+
+    doLast {
+        def budgets = loadEmbeddedBudgetProperties()
+        def report = cockpitRuntimeBudgetReportFile.get().asFile
+        def data = new groovy.json.JsonSlurper().parse(report)
+
+        long heapMaxBytes = megabytesToBytes(budgets.getProperty("heap.maxMb"))
+        long heapGrowthMaxBytes = megabytesToBytes(budgets.getProperty("heap.postWarmupGrowthMb"))
+        double frameMinFps = Double.parseDouble(budgets.getProperty("frame.minFps"))
+        long peakHeapBytes = ((Number) data.peakJavaHeapBytes).longValue()
+        long heapGrowthBytes = ((Number) data.heapGrowthAfterWarmupBytes).longValue()
+        double averageFps = ((Number) data.averageFps).doubleValue()
+
+        logger.lifecycle("")
+        logger.lifecycle("Cockpit runtime embedded budgets:")
+        logger.lifecycle("  Peak Java heap: ${formatMegabytes(peakHeapBytes)} / ${formatMegabytes(heapMaxBytes)} ${passFail(peakHeapBytes <= heapMaxBytes)}")
+        logger.lifecycle("  Post-warm-up heap growth: ${formatMegabytes(heapGrowthBytes)} / ${formatMegabytes(heapGrowthMaxBytes)} ${passFail(heapGrowthBytes <= heapGrowthMaxBytes)}")
+        logger.lifecycle("  Average FPS: ${formatNumber(averageFps)} / ${formatNumber(frameMinFps)} ${passFail(averageFps >= frameMinFps)}")
+        logger.lifecycle("  Slow frames: ${((Number) data.slowFrames).longValue()}")
+        logger.lifecycle("  Report: ${report}")
+        logger.lifecycle("")
+    }
+}
+
+tasks.register("verifyCockpitRuntimeBudgets") {
+    group = "verification"
+    description = "Runs connected runtime budget checks and prints measured heap/frame results."
+    dependsOn("printCockpitRuntimeBudgetSummary")
+}
+
+tasks.named("check") {
+    dependsOn(tasks.named("checkHotPathAllocations"))
+    dependsOn(tasks.named("checkEmbeddedBudgets"))
 }
 
 tasks.register("copyDebugApk", Copy) {

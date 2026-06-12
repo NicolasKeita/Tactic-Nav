@@ -13,7 +13,6 @@ import com.tacticnav.cockpit.domain.TacticalTrack;
 import com.tacticnav.cockpit.domain.TrackStatus;
 
 import java.util.List;
-import java.util.Locale;
 
 public final class CanvasTacticalMapEngine implements TacticalMapEngine {
     private final float density;
@@ -153,7 +152,7 @@ public final class CanvasTacticalMapEngine implements TacticalMapEngine {
             canvas.drawText(track.callsign(), point.x + dp(12.0f), point.y - dp(2.0f), paint);
             paint.setTextSize(sp(9.0f));
             paint.setColor(ColorPalette.TEXT_MUTED);
-            canvas.drawText(String.format(Locale.US, "%d FT", track.altitudeFt()), point.x + dp(12.0f), point.y + dp(11.0f), paint);
+            canvas.drawText(Integer.toString(track.altitudeFt()) + " FT", point.x + dp(12.0f), point.y + dp(11.0f), paint);
         }
     }
 

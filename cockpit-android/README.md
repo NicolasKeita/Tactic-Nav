@@ -19,11 +19,34 @@ so it can be replaced when the ATC output protocol is finalized.
 ```powershell
 cd cockpit-android
 gradle :app:testDebugUnitTest
+gradle :app:checkHotPathAllocations :app:checkEmbeddedBudgets
 gradle :app:assembleDebug
 ```
 
 The build uses Android Gradle Plugin `9.2.0`, Gradle `9.4.1+`, JDK `17`, and
 `compileSdk 36`. The app targets Android 13 (`targetSdk 33`, `minSdk 33`).
+
+## Embedded budget checks
+
+The cockpit has executable embedded gates in `embedded-budgets.properties`.
+
+- `:app:checkHotPathAllocations` fails on known allocation-heavy APIs in render hot paths.
+- `:app:checkEmbeddedBudgets` checks the debug APK against the configured size budget and writes `app/build/reports/embedded-budgets/embedded-budgets.json`.
+- `:app:printEmbeddedBudgetSummary` prints the build-time embedded budget summary and explicitly reports that runtime heap/FPS were not measured.
+- `:app:testDebugUnitTest` includes JVM stress tests for bounded datagrams, simulated snapshots, and processing loops.
+- `:app:verifyCockpitRuntimeBudgets` runs the runtime heap/frame budget test on a connected emulator or device, pulls the JSON report, and prints measured results.
+
+The default Maven verification command remains device-free and does not run the runtime benchmark:
+
+```powershell
+.\mvnw.cmd verify
+```
+
+Run measured heap/FPS verification with a connected Android emulator or device:
+
+```powershell
+.\mvnw.cmd verify -Pandroid-runtime-verify
+```
 
 ## Important packages
 

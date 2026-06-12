@@ -18,8 +18,6 @@ import com.tacticnav.cockpit.render.ColorPalette;
 import com.tacticnav.cockpit.render.TacticalMapEngine;
 import com.tacticnav.cockpit.render.TacticalProjection;
 
-import java.util.Locale;
-
 public final class TacticalDisplayView extends View {
     private static final double VIEWPORT_CENTER_LAT = 43.8915;
     private static final double VIEWPORT_CENTER_LON = -0.5007;
@@ -39,6 +37,17 @@ public final class TacticalDisplayView extends View {
 
     private TacticalSnapshot snapshot;
     private String diagnostic = "";
+    private String primaryGroundSpeedText = "---";
+    private String primaryHeadingText = "---";
+    private String primaryAltitudeText = "---";
+    private String primaryVerticalSpeedText = "---";
+    private String linkStatusText = "INIT";
+    private String trackCountText = "0";
+    private String alertCountText = "0";
+    private String sequenceText = "0";
+    private String modeText = "UDP";
+    private int linkStatusColor = ColorPalette.WARNING;
+    private int alertCountColor = ColorPalette.FRIENDLY;
     private OnSysSettingsListener sysSettingsListener;
 
     public interface OnSysSettingsListener {
@@ -50,6 +59,7 @@ public final class TacticalDisplayView extends View {
         density = context.getResources().getDisplayMetrics().density;
         mapEngine = new CanvasTacticalMapEngine(density);
         snapshot = TacticalSnapshot.empty(java.lang.System.currentTimeMillis());
+        updateSnapshotText();
         setFocusable(true);
         setWillNotDraw(false);
     }
@@ -87,6 +97,7 @@ public final class TacticalDisplayView extends View {
             throw new IllegalArgumentException("snapshot cannot be null");
         }
         this.snapshot = snapshot;
+        updateSnapshotText();
         invalidate();
     }
 
@@ -141,12 +152,11 @@ public final class TacticalDisplayView extends View {
         paint.setColor(ColorPalette.GRID);
         canvas.drawLine(topBar.left, topBar.bottom, topBar.right, topBar.bottom, paint);
 
-        TacticalTrack primary = snapshot.tracks().isEmpty() ? null : snapshot.tracks().get(0);
-        drawHudCell(canvas, 0, "GS", primary == null ? "---" : String.format(Locale.US, "%.0f", primary.groundSpeedKt()), "KT");
-        drawHudCell(canvas, 1, "HDG", primary == null ? "---" : String.format(Locale.US, "%03.0f", primary.headingDeg()), "M");
+        drawHudCell(canvas, 0, "GS", primaryGroundSpeedText, "KT");
+        drawHudCell(canvas, 1, "HDG", primaryHeadingText, "M");
         drawCompass(canvas);
-        drawHudCell(canvas, 4, "ALT", primary == null ? "---" : String.format(Locale.US, "%,d", primary.altitudeFt()), "FT");
-        drawHudCell(canvas, 5, "VS", primary == null ? "---" : String.format(Locale.US, "%+.0f", primary.verticalSpeedFpm()), "FT/MIN");
+        drawHudCell(canvas, 4, "ALT", primaryAltitudeText, "FT");
+        drawHudCell(canvas, 5, "VS", primaryVerticalSpeedText, "FT/MIN");
     }
 
     private void drawHudCell(Canvas canvas, int index, String label, String value, String unit) {
@@ -255,11 +265,11 @@ public final class TacticalDisplayView extends View {
         paint.setColor(ColorPalette.PANEL);
         canvas.drawRect(rightPanel, paint);
 
-        drawRightMetric(canvas, 0, "LINK", labelFor(snapshot.linkStatus()), colorFor(snapshot.linkStatus()));
-        drawRightMetric(canvas, 1, "TRACKS", Integer.toString(snapshot.trackCount()), ColorPalette.FRIENDLY);
-        drawRightMetric(canvas, 2, "ALERTS", Integer.toString(snapshot.alertCount()), snapshot.alertCount() > 0 ? ColorPalette.CRITICAL : ColorPalette.FRIENDLY);
-        drawRightMetric(canvas, 3, "SEQ", Long.toString(snapshot.sequenceNumber()), ColorPalette.TEXT_PRIMARY);
-        drawRightMetric(canvas, 4, "MODE", snapshot.linkStatus() == LinkStatus.SIMULATED ? "SIM" : "UDP", ColorPalette.BLUE);
+        drawRightMetric(canvas, 0, "LINK", linkStatusText, linkStatusColor);
+        drawRightMetric(canvas, 1, "TRACKS", trackCountText, ColorPalette.FRIENDLY);
+        drawRightMetric(canvas, 2, "ALERTS", alertCountText, alertCountColor);
+        drawRightMetric(canvas, 3, "SEQ", sequenceText, ColorPalette.TEXT_PRIMARY);
+        drawRightMetric(canvas, 4, "MODE", modeText, ColorPalette.BLUE);
     }
 
     private void drawRightMetric(Canvas canvas, int index, String label, String value, int valueColor) {
@@ -361,6 +371,51 @@ public final class TacticalDisplayView extends View {
             return ColorPalette.WARNING;
         }
         return ColorPalette.FRIENDLY;
+    }
+
+    private void updateSnapshotText() {
+        TacticalTrack primary = snapshot.tracks().isEmpty() ? null : snapshot.tracks().get(0);
+        if (primary == null) {
+            primaryGroundSpeedText = "---";
+            primaryHeadingText = "---";
+            primaryAltitudeText = "---";
+            primaryVerticalSpeedText = "---";
+        } else {
+            primaryGroundSpeedText = Integer.toString(Math.round(primary.groundSpeedKt()));
+            primaryHeadingText = threeDigit(Math.round(primary.headingDeg()));
+            primaryAltitudeText = Integer.toString(primary.altitudeFt());
+            primaryVerticalSpeedText = signedRounded(primary.verticalSpeedFpm());
+        }
+
+        linkStatusText = labelFor(snapshot.linkStatus());
+        trackCountText = Integer.toString(snapshot.trackCount());
+        alertCountText = Integer.toString(snapshot.alertCount());
+        sequenceText = Long.toString(snapshot.sequenceNumber());
+        modeText = snapshot.linkStatus() == LinkStatus.SIMULATED ? "SIM" : "UDP";
+        linkStatusColor = colorFor(snapshot.linkStatus());
+        alertCountColor = snapshot.alertCount() > 0 ? ColorPalette.CRITICAL : ColorPalette.FRIENDLY;
+    }
+
+    private static String threeDigit(int value) {
+        int normalized = value % 360;
+        if (normalized < 0) {
+            normalized += 360;
+        }
+        if (normalized < 10) {
+            return "00" + normalized;
+        }
+        if (normalized < 100) {
+            return "0" + normalized;
+        }
+        return Integer.toString(normalized);
+    }
+
+    private static String signedRounded(float value) {
+        int rounded = Math.round(value);
+        if (rounded >= 0) {
+            return "+" + rounded;
+        }
+        return Integer.toString(rounded);
     }
 
     private int adjustAlpha(int color, float alpha) {
