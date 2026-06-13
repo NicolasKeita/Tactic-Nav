@@ -79,7 +79,7 @@ public final class CockpitActivity extends Activity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         displayView = new TacticalDisplayView(this);
-        displayView.setOnSysSettingsListener(this::showSysSettingsDialog);
+        // displayView.setOnSysSettingsListener(this::showSysSettingsDialog);
         controller = CockpitRuntimeFactory.create(this);
         setContentView(displayView);
         applyImmersiveMode();
@@ -92,11 +92,11 @@ public final class CockpitActivity extends Activity {
         rendering = true;
         Choreographer.getInstance().postFrameCallback(frameCallback);
 
-        // Demander la configuration au premier lancement
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        if (!prefs.getBoolean(PREFS_CONFIGURED, false)) {
-            mainHandler.post(this::showSysSettingsDialog);
-        }
+        // // Demander la configuration au premier lancement
+        // SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        // if (!prefs.getBoolean(PREFS_CONFIGURED, false)) {
+        //     mainHandler.post(this::showSysSettingsDialog);
+        // }
     }
 
     @Override

@@ -24,6 +24,7 @@ replay_pid*
 
 target/
 .vscode/
+.idea/
 .tmp*
 bin/
 

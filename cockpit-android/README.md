@@ -60,6 +60,26 @@ cd cockpit-android
 ./gradlew pixel6api34DebugAndroidTest
 ```
 
+### Macrobenchmarks
+
+Startup and frame timing benchmarks use `androidx.benchmark.macro` with self-instrumenting
+tests on the managed device. Run them with:
+
+```powershell
+cd cockpit-android
+./gradlew :app:runCockpitMacrobenchmark
+```
+
+Or run only the macrobenchmark class:
+
+```powershell
+./gradlew pixel6api34DebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.benchmark.CockpitMacrobenchmark
+```
+
+Results are written under `app/build/outputs/connected_android_test_additional_output/`.
+The `frameTimingWhileRendering` test keeps the cockpit activity visible for 15 seconds
+per iteration so `FrameTimingMetric` can capture render performance.
+
 ## Important packages
 
 - `com.tacticnav.cockpit.domain`: immutable cockpit situation model.
