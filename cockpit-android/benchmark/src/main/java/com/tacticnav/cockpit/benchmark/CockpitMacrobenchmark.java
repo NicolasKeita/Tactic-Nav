@@ -1,4 +1,4 @@
-package com.example.benchmark;
+package com.tacticnav.cockpit.benchmark;
 
 import android.os.SystemClock;
 import android.util.Log;
@@ -51,28 +51,6 @@ public final class CockpitMacrobenchmark {
         Log.i("Benchmark", "Test coldStartup terminé. Résultats disponibles dans les fichiers JSON de sortie.");
     }
 
-    // @Test
-    // public void frameTimingWhileRendering() {
-    //     benchmarkRule.getDelegate().measureRepeated(
-    //             PACKAGE_NAME,
-    //             Collections.singletonList(new FrameTimingMetric()),
-    //             CompilationMode.DEFAULT,
-    //             null,
-    //             FRAME_ITERATIONS,
-    //             scope -> {
-    //                 CockpitBenchmarkSetup.prepareLaunch();
-    //                 scope.pressHome();
-    //                 scope.killProcess();
-    //                 return Unit.INSTANCE;
-    //             },
-    //             scope -> {
-    //                 scope.startActivityAndWait();
-    //                 scope.getDevice().waitForIdle();
-    //                 SystemClock.sleep(FRAME_MEASURE_MS);
-    //                 return Unit.INSTANCE;
-    //             }
-    //     );
-    // }
     @Test
     public void frameTimingWhileRendering() {
         Log.i("Benchmark", "Démarrage du test frameTimingWhileRendering");
@@ -91,11 +69,11 @@ public final class CockpitMacrobenchmark {
                 scope -> {
                     scope.startActivityAndWait();
                     scope.getDevice().waitForIdle();
-                    
+
                     // 1. On récupère la taille de l'écran de l'émulateur
                     int width = scope.getDevice().getDisplayWidth();
                     int height = scope.getDevice().getDisplayHeight();
-                    
+
                     // 2. On simule des mouvements (swipes) pour forcer le rendu graphique
                     // On fait par exemple 3 glissements de droite à gauche
                     for (int i = 0; i < 3; i++) {
@@ -106,11 +84,11 @@ public final class CockpitMacrobenchmark {
                                 (int) (height * 0.5), // Y d'arrivée (au milieu)
                                 20                    // Vitesse du geste (plus c'est bas, plus c'est rapide)
                         );
-                        
+
                         // Une petite pause d'une demi-seconde entre chaque geste
                         SystemClock.sleep(500);
                     }
-                    
+
                     return Unit.INSTANCE;
                 }
         );

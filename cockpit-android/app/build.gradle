@@ -113,12 +113,14 @@ android {
     testOptions {
         unitTests.returnDefaultValues = true
         managedDevices {
-            localDevices.create("pixel6api34") {
-                device = "Pixel 6"
-                apiLevel = 34
-                systemImageSource = "aosp_atd"
-                require64Bit = true
-                testedAbi = "x86_64"
+            localDevices {
+                pixel6api34 {
+                    device = "Pixel 6"
+                    apiLevel = 34
+                    systemImageSource = "aosp-atd"
+                    require64Bit = true
+                    testedAbi = "x86_64"
+                }
             }
         }
     }
@@ -394,3 +396,7 @@ tasks.named("check") {
     dependsOn(tasks.named("checkEmbeddedBudgets"))
 }
 
+  
+tasks.withType(JavaCompile).configureEach {  
+    options.compilerArgs += "-Xlint:deprecation"  
+}

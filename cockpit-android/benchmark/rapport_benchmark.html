@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapport Benchmark - MemoryStability</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 24px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-radius: 16px;
+            border: 1px solid #334155;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .header .status-badge {
+            display: inline-block;
+            padding: 8px 24px;
+            border-radius: 9999px;
+            font-weight: bold;
+            font-size: 18px;
+            color: white;
+            background: #22c55e;
+            margin-top: 12px;
+        }
+
+        .header .meta {
+            color: #94a3b8;
+            font-size: 14px;
+            margin-top: 12px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-card .label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #64748b;
+        }
+
+        .stat-card .value {
+            font-size: 22px;
+            font-weight: bold;
+            margin-top: 8px;
+            color: #f1f5f9;
+        }
+
+        .chart-container {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .chart-container h2 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: #f1f5f9;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+        }
+
+        .table-container {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 24px;
+            overflow-x: auto;
+        }
+
+        .table-container h2 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: #f1f5f9;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px 16px;
+            background: #334155;
+            color: #94a3b8;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 2px solid #475569;
+        }
+
+        td {
+            padding: 10px 16px;
+            border-bottom: 1px solid #334155;
+        }
+
+        tr:hover td {
+            background: rgba(51, 65, 85, 0.5);
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #64748b;
+            font-size: 12px;
+            margin-top: 24px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+            }
+            .header h1 {
+                font-size: 22px;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Rapport de Stabilite Memoire</h1>
+            <p style="color: #94a3b8;">MemoryStabilityBenchmark</p>
+            <div class="status-badge">TOUS LES TESTS ONT REUSSI</div>
+            <div class="meta">
+                Genere le 2026-06-14 04:09:14 &middot; samsung SM-A155F (SDK 35)
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="label">Appareil</div>
+                <div class="value">samsung</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Modele</div>
+                <div class="value">SM-A155F</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">SDK Android</div>
+                <div class="value">35</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Coeurs CPU</div>
+                <div class="value">8</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Frequence CPU Max</div>
+                <div class="value">2.20 GHz</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">RAM Totale</div>
+                <div class="value">5.56 GB</div>
+            </div>
+        </div>
+
+        <!-- Bar Chart -->
+        <div class="chart-container">
+            <h2>Compteurs GC - Distribution</h2>
+            <div class="chart-wrapper">
+                <canvas id="gcChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Resultats individuels -->
+        
+        <div class="chart-container">
+            <h2>[PASS] memoryStabilityWhileRendering
+                <span style="float: right; font-size: 14px; color: #94a3b8;">
+                    Duree : 150.1s (2.50 min)
+                </span>
+            </h2>
+            <div class="chart-wrapper">
+                <canvas id="chart_memoryStabilityWhileRendering"></canvas>
+            </div>
+        </div>
+        
+
+        <!-- Tableau des metriques -->
+        <div class="table-container">
+            <h2>Metriques detaillees</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Test</th>
+                        <th>Metrique</th>
+                        <th>Mediane</th>
+                        <th>Min</th>
+                        <th>Max</th>
+                        <th>Runs</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+            <tr>
+                <td>memoryStabilityWhileRendering</td>
+                <td style="font-family: monospace;">Alloc concurrent copying GCCount</td>
+                <td style="color: #22c55e; font-weight: bold;">0.00</td>
+                <td>0.00</td>
+                <td>0.00</td>
+                <td>[0.0]</td>
+            </tr>
+            <tr>
+                <td>memoryStabilityWhileRendering</td>
+                <td style="font-family: monospace;">Alloc concurrent copying GCMs</td>
+                <td style="color: #22c55e; font-weight: bold;">0.00</td>
+                <td>0.00</td>
+                <td>0.00</td>
+                <td>[0.0]</td>
+            </tr>
+            <tr>
+                <td>memoryStabilityWhileRendering</td>
+                <td style="font-family: monospace;">Alloc concurrent mark sweep GCCount</td>
+                <td style="color: #22c55e; font-weight: bold;">0.00</td>
+                <td>0.00</td>
+                <td>0.00</td>
+                <td>[0.0]</td>
+            </tr>
+            <tr>
+                <td>memoryStabilityWhileRendering</td>
+                <td style="font-family: monospace;">Alloc concurrent mark sweep GCMs</td>
+                <td style="color: #22c55e; font-weight: bold;">0.00</td>
+                <td>0.00</td>
+                <td>0.00</td>
+                <td>[0.0]</td>
+            </tr>
+            <tr>
+                <td>memoryStabilityWhileRendering</td>
+                <td style="font-family: monospace;">Background young generation GCCount</td>
+                <td style="color: #22c55e; font-weight: bold;">0.00</td>
+                <td>0.00</td>
+                <td>0.00</td>
+                <td>[0.0]</td>
+            </tr>
+            <tr>
+                <td>memoryStabilityWhileRendering</td>
+                <td style="font-family: monospace;">Background young generation GCMs</td>
+                <td style="color: #22c55e; font-weight: bold;">0.00</td>
+                <td>0.00</td>
+                <td>0.00</td>
+                <td>[0.0]</td>
+            </tr>
+            <tr>
+                <td>memoryStabilityWhileRendering</td>
+                <td style="font-family: monospace;">GCCount</td>
+                <td style="color: #22c55e; font-weight: bold;">0.00</td>
+                <td>0.00</td>
+                <td>0.00</td>
+                <td>[0.0]</td>
+            </tr>
+            <tr>
+                <td>memoryStabilityWhileRendering</td>
+                <td style="font-family: monospace;">GCMs</td>
+                <td style="color: #22c55e; font-weight: bold;">0.00</td>
+                <td>0.00</td>
+                <td>0.00</td>
+                <td>[0.0]</td>
+            </tr>
+            <tr>
+                <td>memoryStabilityWhileRendering</td>
+                <td style="font-family: monospace;">get_object_size_allocatedCount</td>
+                <td style="color: #22c55e; font-weight: bold;">0.00</td>
+                <td>0.00</td>
+                <td>0.00</td>
+                <td>[0.0]</td>
+            </tr>
+            <tr>
+                <td>memoryStabilityWhileRendering</td>
+                <td style="font-family: monospace;">get_object_size_allocatedMs</td>
+                <td style="color: #22c55e; font-weight: bold;">0.00</td>
+                <td>0.00</td>
+                <td>0.00</td>
+                <td>[0.0]</td>
+            </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="footer">
+            TACTIC-NAV - Benchmark de Stabilite Memoire &middot; Genere automatiquement
+        </div>
+    </div>
+
+    <script>
+        // Graphique principal : toutes les metriques GC
+        const gcCtx = document.getElementById('gcChart').getContext('2d');
+        new Chart(gcCtx, {
+            type: 'bar',
+            data: {
+                labels: ["Alloc concurrent copying", "Alloc concurrent mark sweep", "Background young generation", ""],
+                datasets: [{
+                    label: 'Valeur mediane',
+                    data: [0.0, 0.0, 0.0, 0.0],
+                    backgroundColor: ["rgba(34, 197, 94, 0.7)", "rgba(34, 197, 94, 0.7)", "rgba(34, 197, 94, 0.7)", "rgba(34, 197, 94, 0.7)"],
+                    borderColor: ["#22c55e", "#22c55e", "#22c55e", "#22c55e"],
+                    borderWidth: 2,
+                    borderRadius: 6,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                const label = ctx.label || '';
+                                const value = ctx.raw;
+                                const status = value === 0 ? 'OK - Aucun GC' : 'FAIL - GC detecte';
+                                return label + ': ' + value + ' (' + status + ')';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(71, 85, 105, 0.3)' },
+                        ticks: { color: '#94a3b8' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#94a3b8' }
+                    }
+                }
+            }
+        });
+
+        // Graphiques individuels par benchmark
+        
+        (function() {
+            const ctx = document.getElementById('chart_memoryStabilityWhileRendering').getContext('2d');
+            const labels = ["Alloc concurrent copying GCCount", "Alloc concurrent copying GCMs", "Alloc concurrent mark sweep GCCount", "Alloc concurrent mark sweep GCMs", "Background young generation GCCount", "Background young generation GCMs", "GCCount", "GCMs", "get_object_size_allocatedCount", "get_object_size_allocatedMs"];
+            const values = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+            const colors = values.map(v => v === 0 ? 'rgba(34, 197, 94, 0.7)' : 'rgba(239, 68, 68, 0.7)');
+            const borders = values.map(v => v === 0 ? '#22c55e' : '#ef4444');
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Valeur mediane',
+                        data: values,
+                        backgroundColor: colors,
+                        borderColor: borders,
+                        borderWidth: 2,
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: { display: false },
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(71, 85, 105, 0.3)' },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8', font: { size: 11 } }
+                        }
+                    }
+                }
+            });
+        })();
+        
+    </script>
+</body>
+</html>

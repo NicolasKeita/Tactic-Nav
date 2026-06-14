@@ -1,4 +1,4 @@
-package com.example.benchmark;
+package com.tacticnav.cockpit.benchmark;
 
 import android.Manifest;
 import android.app.UiAutomation;

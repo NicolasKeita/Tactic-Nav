@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = 'com.example.benchmark'
+    namespace = "com.tacticnav.cockpit.benchmark"
     compileSdk = 36
 
     defaultConfig {
@@ -14,6 +14,12 @@ android {
 
         // ✅ Autorise le benchmark à s'exécuter sur l'émulateur de test
         testInstrumentationRunnerArguments["androidx.benchmark.suppressErrors"] = "EMULATOR,DEBUGGABLE,GRANT"
+
+        // Force x86_64 pour l'émulateur local (évite les warnings NDK translation
+        // et le build d'ABI non supportées comme arm64-v8a sur émulateur Windows x86_64)
+        ndk {
+            abiFilters "x86_64", "arm64-v8a"
+        }
     }
 
     buildTypes {
@@ -32,19 +38,22 @@ android {
 
     testOptions {
         managedDevices {
-            localDevices.create("pixel6api34") {
-                device = "Pixel 6"
-                apiLevel = 34
-                systemImageSource = "aosp_atd"
-                require64Bit = true
-                testedAbi = "x86_64"
+            localDevices {
+                pixel6api34 {
+                    device = "Pixel 6"
+                    apiLevel = 34
+                    systemImageSource = "aosp-atd"
+                    require64Bit = true
+                    testedAbi = "x86_64"
+                }
             }
         }
     }
 }
 
 dependencies {
-    implementation 'androidx.benchmark:benchmark-macro-junit4:1.3.0'
+    implementation 'androidx.benchmark:benchmark-macro-junit4:1.2.4'
+    implementation 'androidx.benchmark:benchmark-macro:1.2.4'
     implementation 'androidx.test.espresso:espresso-core:3.5.1'
     implementation 'androidx.test.ext:junit:1.1.5'
     implementation 'androidx.test.uiautomator:uiautomator:2.2.0'
@@ -54,4 +63,150 @@ androidComponents {
     beforeVariants(selector().all()) {
         enable = buildType == "benchmark1"
     }
+}
+
+/**
+ * Tâche : génère un rapport HTML de visualisation des résultats du benchmark
+ * de stabilité mémoire (MemoryStabilityBenchmark).
+ *
+ * Usage :
+ *   ./gradlew :benchmark:generateMemoryStabilityReport
+ *
+ * Le rapport est généré dans :
+ *   benchmark/build/reports/benchmark/rapport_benchmark_<timestamp>.html
+ *
+ * Dépend de l'existence du fichier benchmarkData.json dans les outputs du benchmark.
+ * Peut être exécutée après n'importe quel run de benchmark.
+ */
+tasks.register("generateMemoryStabilityReport") {
+    group = "verification"
+    description = "Génère un rapport HTML détaillé des résultats du MemoryStabilityBenchmark (GC profile)."
+
+    doLast {
+        def scriptFile = rootProject.projectDir.toPath().resolve("benchmark/scripts/generate_benchmark_report.py").toFile()
+        if (!scriptFile.exists()) {
+            throw new org.gradle.api.GradleException("Script introuvable : ${scriptFile}")
+        }
+
+        // Chercher le fichier benchmarkData.json le plus récent
+        def benchmarkOutputDir = layout.buildDirectory.dir("outputs/connected_android_test_additional_output/benchmark1/connected").get().asFile
+        def latestDeviceDir = null
+        if (benchmarkOutputDir.exists()) {
+            benchmarkOutputDir.listFiles()?.each { deviceDir ->
+                if (deviceDir.isDirectory() && (latestDeviceDir == null || deviceDir.lastModified() > latestDeviceDir.lastModified())) {
+                    latestDeviceDir = deviceDir
+                }
+            }
+        }
+
+        if (latestDeviceDir == null) {
+            throw new org.gradle.api.GradleException("Aucun résultat de benchmark trouvé dans ${benchmarkOutputDir}. Exécutez d'abord le benchmark (ex: ./gradlew :benchmark:pixel6api34Benchmark1AndroidTest).")
+        }
+
+        // Chercher le fichier benchmarkData.json (peut s'appeler com.example ou com_example)
+        def jsonFiles = latestDeviceDir.listFiles().findAll { it.name.endsWith("benchmarkData.json") }
+        if (jsonFiles.isEmpty()) {
+            throw new org.gradle.api.GradleException("Aucun fichier *benchmarkData.json trouvé dans ${latestDeviceDir}")
+        }
+        def jsonFile = jsonFiles.sort { -it.lastModified() }.first()
+
+        // Créer le répertoire de sortie
+        def reportDir = layout.buildDirectory.dir("reports/benchmark").get().asFile
+        reportDir.mkdirs()
+
+        def timestamp = new java.text.SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date())
+        def outputFile = new File(reportDir, "rapport_benchmark_${timestamp}.html")
+
+        // Exécuter le script Python
+        def command = ["python", scriptFile.absolutePath, "--json", jsonFile.absolutePath, "--output", outputFile.absolutePath]
+        logger.lifecycle("")
+        logger.lifecycle("=== Génération du rapport HTML ===")
+        logger.lifecycle("JSON source : ${jsonFile.absolutePath}")
+        logger.lifecycle("HTML cible  : ${outputFile.absolutePath}")
+        logger.lifecycle("")
+
+        def process = new ProcessBuilder(command)
+                .redirectErrorStream(true)
+                .start()
+        def output = new StringBuilder()
+        process.inputStream.eachLine { line ->
+            logger.lifecycle("  ${line}")
+            output.append(line).append("\n")
+        }
+        def exitCode = process.waitFor()
+
+        if (exitCode != 0) {
+            throw new org.gradle.api.GradleException("Échec de la génération du rapport (code ${exitCode}):\n${output}")
+        }
+
+        logger.lifecycle("")
+        logger.lifecycle("✅ Rapport HTML généré : ${outputFile.absolutePath}")
+        logger.lifecycle("   Ouvrez ce fichier dans votre navigateur pour visualiser les graphiques.")
+    }
+}
+
+/**
+ * Tâche : affiche un résumé coloré des résultats du benchmark dans le terminal.
+ *
+ * Usage :
+ *   ./gradlew :benchmark:printMemoryStabilitySummary
+ *
+ * Alternative à la génération HTML : lit le dernier benchmarkData.json
+ * et affiche les résultats directement dans le terminal avec des codes ANSI.
+ */
+tasks.register("printMemoryStabilitySummary") {
+    group = "verification"
+    description = "Affiche un résumé des résultats du MemoryStabilityBenchmark dans le terminal."
+
+    doLast {
+        def scriptFile = rootProject.projectDir.toPath().resolve("benchmark/scripts/generate_benchmark_report.py").toFile()
+        if (!scriptFile.exists()) {
+            throw new org.gradle.api.GradleException("Script introuvable : ${scriptFile}")
+        }
+
+        // Chercher le fichier benchmarkData.json le plus récent
+        def benchmarkOutputDir = layout.buildDirectory.dir("outputs/connected_android_test_additional_output/benchmark1/connected").get().asFile
+        def latestDeviceDir = null
+        if (benchmarkOutputDir.exists()) {
+            benchmarkOutputDir.listFiles()?.each { deviceDir ->
+                if (deviceDir.isDirectory() && (latestDeviceDir == null || deviceDir.lastModified() > latestDeviceDir.lastModified())) {
+                    latestDeviceDir = deviceDir
+                }
+            }
+        }
+
+        if (latestDeviceDir == null) {
+            throw new org.gradle.api.GradleException("Aucun résultat de benchmark trouvé dans ${benchmarkOutputDir}. Exécutez d'abord le benchmark (ex: ./gradlew :benchmark:pixel6api34Benchmark1AndroidTest).")
+        }
+
+        // Chercher le fichier benchmarkData.json (peut s'appeler com.example ou com_example)
+        def jsonFiles = latestDeviceDir.listFiles().findAll { it.name.endsWith("benchmarkData.json") }
+        if (jsonFiles.isEmpty()) {
+            throw new org.gradle.api.GradleException("Aucun fichier *benchmarkData.json trouvé dans ${latestDeviceDir}")
+        }
+        def jsonFile = jsonFiles.sort { -it.lastModified() }.first()
+
+        // Exécuter le script Python en mode terminal uniquement
+        def command = ["python", scriptFile.absolutePath, "--json", jsonFile.absolutePath, "--terminal"]
+        logger.lifecycle("")
+        logger.lifecycle("=== Résumé du MemoryStabilityBenchmark ===")
+        logger.lifecycle("")
+
+        def process = new ProcessBuilder(command)
+                .redirectErrorStream(true)
+                .start()
+        def output = new StringBuilder()
+        process.inputStream.eachLine { line ->
+            logger.lifecycle("${line}")
+            output.append(line).append("\n")
+        }
+        def exitCode = process.waitFor()
+
+        if (exitCode != 0) {
+            throw new org.gradle.api.GradleException("Échec de la lecture du résumé (code ${exitCode}):\n${output}")
+        }
+    }
+}
+tasks.withType(JavaCompile).configureEach {  
+    options.compilerArgs += "-Xlint:deprecation"  
 }
