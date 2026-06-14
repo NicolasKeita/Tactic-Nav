@@ -1,6 +1,7 @@
 package com.example.benchmark;
 
 import android.os.SystemClock;
+import android.util.Log;
 
 import androidx.benchmark.macro.CompilationMode;
 import androidx.benchmark.macro.FrameTimingMetric;
@@ -30,6 +31,7 @@ public final class CockpitMacrobenchmark {
 
     @Test
     public void coldStartup() {
+        Log.i("Benchmark", "Démarrage du test coldStartup");
         benchmarkRule.getDelegate().measureRepeated(
                 PACKAGE_NAME,
                 Collections.singletonList(new StartupTimingMetric()),
@@ -46,6 +48,7 @@ public final class CockpitMacrobenchmark {
                     return Unit.INSTANCE;
                 }
         );
+        Log.i("Benchmark", "Test coldStartup terminé. Résultats disponibles dans les fichiers JSON de sortie.");
     }
 
     // @Test
@@ -72,6 +75,7 @@ public final class CockpitMacrobenchmark {
     // }
     @Test
     public void frameTimingWhileRendering() {
+        Log.i("Benchmark", "Démarrage du test frameTimingWhileRendering");
         benchmarkRule.getDelegate().measureRepeated(
                 PACKAGE_NAME,
                 Collections.singletonList(new FrameTimingMetric()),
@@ -110,5 +114,6 @@ public final class CockpitMacrobenchmark {
                     return Unit.INSTANCE;
                 }
         );
+        Log.i("Benchmark", "Test frameTimingWhileRendering terminé. Résultats disponibles dans les fichiers JSON de sortie.");
     }
 }

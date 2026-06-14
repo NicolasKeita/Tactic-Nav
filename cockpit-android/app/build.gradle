@@ -307,6 +307,88 @@ tasks.register("runCockpitMacrobenchmark", Exec) {
             "-Pandroid.testInstrumentationRunnerArguments.class=com.example.benchmark.CockpitMacrobenchmark"
 }
 
+tasks.register("printBenchmarkResults") {
+    group = "verification"
+    description = "Prints the latest benchmark results (startup + frame timing) from the generated JSON. Can be run standalone after any benchmark execution."
+
+    doLast {
+        def benchmarkOutputDir = rootProject.layout.projectDirectory.dir("benchmark/build/outputs/connected_android_test_additional_output/benchmark1/connected")
+        def latestDeviceDir = null
+        benchmarkOutputDir.get().asFile.listFiles()?.each { deviceDir ->
+            if (deviceDir.isDirectory() && (latestDeviceDir == null || deviceDir.lastModified() > latestDeviceDir.lastModified())) {
+                latestDeviceDir = deviceDir
+            }
+        }
+
+        if (latestDeviceDir == null) {
+            logger.lifecycle("No benchmark results found in ${benchmarkOutputDir}")
+            return
+        }
+
+        def jsonFile = new File(latestDeviceDir, "com.example.benchmark-benchmarkData.json")
+        if (!jsonFile.exists()) {
+            logger.lifecycle("No benchmark JSON found in ${latestDeviceDir}")
+            return
+        }
+
+        def data = new groovy.json.JsonSlurper().parse(jsonFile)
+
+        logger.lifecycle("")
+        logger.lifecycle("=== Benchmark Results ===")
+        logger.lifecycle("Device: ${data.context.model} (${data.context.device})")
+        logger.lifecycle("OS SDK: ${data.context.version.sdk}")
+        logger.lifecycle("CPU cores: ${data.context.cpuCoreCount}, max freq: ${data.context.cpuMaxFreqHz / 1000000} MHz")
+        logger.lifecycle("Memory: ${data.context.memTotalBytes / (1024 * 1024 * 1024)} GB")
+        logger.lifecycle("")
+
+        data.benchmarks.each { benchmark ->
+            logger.lifecycle("--- Test: ${benchmark.name} ---")
+            logger.lifecycle("  Total runtime: ${benchmark.totalRunTimeNs / 1_000_000_000.0} seconds")
+            logger.lifecycle("  Repeat iterations: ${benchmark.repeatIterations}")
+
+            if (benchmark.metrics.timeToInitialDisplayMs) {
+                def m = benchmark.metrics.timeToInitialDisplayMs
+                logger.lifecycle("  Time to Initial Display (ms):")
+                logger.lifecycle("    Minimum: ${String.format(java.util.Locale.US, "%.2f", m.minimum)} ms")
+                logger.lifecycle("    Maximum: ${String.format(java.util.Locale.US, "%.2f", m.maximum)} ms")
+                logger.lifecycle("    Median: ${String.format(java.util.Locale.US, "%.2f", m.median)} ms")
+                logger.lifecycle("    Runs: ${m.runs.collect { String.format(java.util.Locale.US, "%.2f", it) }.join(', ')}")
+            }
+
+            if (benchmark.metrics.frameCount) {
+                def m = benchmark.metrics.frameCount
+                logger.lifecycle("  Frame Count:")
+                logger.lifecycle("    Minimum: ${String.format(java.util.Locale.US, "%.0f", m.minimum)}")
+                logger.lifecycle("    Maximum: ${String.format(java.util.Locale.US, "%.0f", m.maximum)}")
+                logger.lifecycle("    Median: ${String.format(java.util.Locale.US, "%.0f", m.median)}")
+                logger.lifecycle("    Runs: ${m.runs.collect { String.format(java.util.Locale.US, "%.0f", it) }.join(', ')}")
+            }
+
+            if (benchmark.sampledMetrics.frameDurationCpuMs) {
+                def m = benchmark.sampledMetrics.frameDurationCpuMs
+                logger.lifecycle("  Frame Duration CPU (ms):")
+                logger.lifecycle("    P50: ${String.format(java.util.Locale.US, "%.2f", m.P50)} ms")
+                logger.lifecycle("    P90: ${String.format(java.util.Locale.US, "%.2f", m.P90)} ms")
+                logger.lifecycle("    P95: ${String.format(java.util.Locale.US, "%.2f", m.P95)} ms")
+                logger.lifecycle("    P99: ${String.format(java.util.Locale.US, "%.2f", m.P99)} ms")
+            }
+
+            if (benchmark.sampledMetrics.frameOverrunMs) {
+                def m = benchmark.sampledMetrics.frameOverrunMs
+                logger.lifecycle("  Frame Overrun (ms):")
+                logger.lifecycle("    P50: ${String.format(java.util.Locale.US, "%.2f", m.P50)} ms")
+                logger.lifecycle("    P90: ${String.format(java.util.Locale.US, "%.2f", m.P90)} ms")
+                logger.lifecycle("    P95: ${String.format(java.util.Locale.US, "%.2f", m.P95)} ms")
+                logger.lifecycle("    P99: ${String.format(java.util.Locale.US, "%.2f", m.P99)} ms")
+            }
+
+            logger.lifecycle("")
+        }
+
+        logger.lifecycle("=== End of Benchmark Results ===")
+    }
+}
+
 tasks.named("check") {
     dependsOn(tasks.named("checkHotPathAllocations"))
     dependsOn(tasks.named("checkEmbeddedBudgets"))
