@@ -18,20 +18,13 @@ import com.tacticnav.cockpit.time.Clock;
 import com.tacticnav.cockpit.time.SystemClock;
 
 public final class CockpitRuntimeFactory {
-    private static final String TRACK_SOURCE_KEY = "com.tacticnav.cockpit.TRACK_SOURCE";
-    private static final String UDP_SOURCE = "UDP";
-    private static final String ADSB_SOURCE = "ADSB";
-
-    private static final String PREFS_NAME = "cockpit_prefs";
-    private static final String PREFS_HOST = "adsb_host";
-    private static final String PREFS_PORT = "adsb_port";
 
     private CockpitRuntimeFactory() {}
 
     public static CockpitController create(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        String host = prefs.getString(PREFS_HOST, "192.168.1.109");
-        int port = parseIntOrDefault(prefs.getString(PREFS_PORT, "9876"), 9876);
+        SharedPreferences prefs = context.getSharedPreferences(CockpitConstants.PREFS_NAME, Context.MODE_PRIVATE);
+        String host = prefs.getString(CockpitConstants.PREFS_HOST, CockpitConstants.DEFAULT_HOST);
+        int port = parseIntOrDefault(prefs.getString(CockpitConstants.PREFS_PORT, CockpitConstants.DEFAULT_PORT), CockpitConstants.DEFAULT_PORT_INT);
         return create(context, host, port);
     }
 
@@ -43,10 +36,10 @@ public final class CockpitRuntimeFactory {
 
     private static AtcTrackSource createSource(Context context, Clock clock, String adsbHost, int adsbPort) {
         String mode = readSourceMode(context);
-        if (ADSB_SOURCE.equalsIgnoreCase(mode)) {
+        if (CockpitConstants.ADSB_SOURCE.equalsIgnoreCase(mode)) {
             return new AdsbUdpBroadcaster(adsbHost, adsbPort);
         }
-        if (UDP_SOURCE.equalsIgnoreCase(mode)) {
+        if (CockpitConstants.UDP_SOURCE.equalsIgnoreCase(mode)) {
             SimulatedTrackGenerator generator = new SimulatedTrackGenerator(clock.nowMillis());
             return new UdpAtcTrackSource(
                     UdpAtcTrackSource.DEFAULT_PORT,
@@ -65,12 +58,12 @@ public final class CockpitRuntimeFactory {
             );
             Bundle metadata = info.metaData;
             if (metadata != null) {
-                return metadata.getString(TRACK_SOURCE_KEY, "SIMULATED");
+                return metadata.getString(CockpitConstants.TRACK_SOURCE_KEY, CockpitConstants.SIMULATED_SOURCE);
             }
         } catch (PackageManager.NameNotFoundException ignored) {
-            return "SIMULATED";
+            return CockpitConstants.SIMULATED_SOURCE;
         }
-        return "SIMULATED";
+        return CockpitConstants.SIMULATED_SOURCE;
     }
 
     private static int parseIntOrDefault(String value, int defaultValue) {

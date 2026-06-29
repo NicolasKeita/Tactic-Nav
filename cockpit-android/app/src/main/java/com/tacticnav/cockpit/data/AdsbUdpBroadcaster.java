@@ -30,8 +30,11 @@ public final class AdsbUdpBroadcaster implements AtcTrackSource {
     private static final String STATION_ID = "COCKPIT";
     private static final String EMITTER_ID = "TACNAV";
 
-    /** Ground station reference point (Mont-de-Marsan air base). */
-    private static final GeoPoint GROUND_STATION = new GeoPoint(43.8915, -0.5007);
+    /** Ground station reference point (Toulouse area, same as default viewport). */
+    private static final GeoPoint GROUND_STATION = new GeoPoint(
+            CockpitConstants.VIEWPORT_CENTER_LAT,
+            CockpitConstants.VIEWPORT_CENTER_LON
+    );
     private static final int GROUND_ALTITUDE_FT = 200;
 
     private final String host;

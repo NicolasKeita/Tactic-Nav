@@ -19,11 +19,6 @@ import com.tacticnav.cockpit.render.TacticalMapEngine;
 import com.tacticnav.cockpit.render.TacticalProjection;
 
 public final class TacticalDisplayView extends View {
-    private static final double VIEWPORT_CENTER_LAT = 43.8915;
-    private static final double VIEWPORT_CENTER_LON = -0.5007;
-    private static final double VIEWPORT_LAT_SPAN = 0.245;
-    private static final double VIEWPORT_LON_SPAN = 0.360;
-
     private final float density;
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF topBar = new RectF();
@@ -48,11 +43,6 @@ public final class TacticalDisplayView extends View {
     private String modeText = "UDP";
     private int linkStatusColor = ColorPalette.WARNING;
     private int alertCountColor = ColorPalette.FRIENDLY;
-    private OnSysSettingsListener sysSettingsListener;
-
-    public interface OnSysSettingsListener {
-        void onSysSettingsRequested();
-    }
 
     public TacticalDisplayView(Context context) {
         super(context);
@@ -64,32 +54,9 @@ public final class TacticalDisplayView extends View {
         setWillNotDraw(false);
     }
 
-    public void setOnSysSettingsListener(OnSysSettingsListener listener) {
-        this.sysSettingsListener = listener;
-    }
-
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (event.getAction() == MotionEvent.ACTION_DOWN) {
-            float x = event.getX();
-            float y = event.getY();
-            if (isSysButtonHit(x, y)) {
-                if (sysSettingsListener != null) {
-                    sysSettingsListener.onSysSettingsRequested();
-                }
-                return true;
-            }
-        }
         return super.onTouchEvent(event);
-    }
-
-    private boolean isSysButtonHit(float x, float y) {
-        layoutRegions(getWidth(), getHeight());
-        float itemHeight = dp(72.0f);
-        int sysIndex = 4;
-        float top = leftRail.top + sysIndex * itemHeight;
-        return x >= leftRail.left && x <= leftRail.right
-                && y >= top && y <= top + itemHeight;
     }
 
     public void setSnapshot(TacticalSnapshot snapshot) {
@@ -117,10 +84,10 @@ public final class TacticalDisplayView extends View {
 
         projection.setViewport(
                 mapBounds,
-                VIEWPORT_CENTER_LAT,
-                VIEWPORT_CENTER_LON,
-                VIEWPORT_LAT_SPAN,
-                VIEWPORT_LON_SPAN
+                CockpitConstants.VIEWPORT_CENTER_LAT,
+                CockpitConstants.VIEWPORT_CENTER_LON,
+                CockpitConstants.VIEWPORT_LAT_SPAN,
+                CockpitConstants.VIEWPORT_LON_SPAN
         );
         mapEngine.draw(canvas, snapshot, projection);
 
