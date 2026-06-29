@@ -11,21 +11,14 @@ android {
         targetSdk = 36
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        // ✅ Autorise le benchmark à s'exécuter sur l'émulateur de test
         testInstrumentationRunnerArguments["androidx.benchmark.suppressErrors"] = "EMULATOR,DEBUGGABLE,GRANT"
 
-        // Force x86_64 pour l'émulateur local (évite les warnings NDK translation
-        // et le build d'ABI non supportées comme arm64-v8a sur émulateur Windows x86_64)
         ndk {
             abiFilters "x86_64", "arm64-v8a"
         }
     }
 
     buildTypes {
-        // This benchmark buildType is used for benchmarking, and should function like your
-        // release build (for example, with minification on). It's signed with a debug key
-        // for easy local/CI testing.
         benchmark1 {
             debuggable = true
             signingConfig = debug.signingConfig
