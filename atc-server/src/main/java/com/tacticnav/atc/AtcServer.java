@@ -1,5 +1,6 @@
 package com.tacticnav.atc;
 
+import com.tacticnav.atc.config.AtcConfiguration;
 import com.tacticnav.atc.fusion.TrackFusionOrchestrator;
 import com.tacticnav.atc.fusion.TrackFusionEngine;
 import com.tacticnav.atc.network.AdsbListener;
@@ -7,7 +8,6 @@ import com.tacticnav.atc.state.SituationStateStore;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.net.InetAddress;
 import java.util.*;
 
 /**
@@ -49,7 +49,7 @@ public final class AtcServer {
     private AtcServer(AtcConfiguration config) {
         this.stateStore = new SituationStateStore();
         
-        this.trackFusionEngine = new TrackFusionEngine();
+        this.trackFusionEngine = TrackFusionEngine.withDefaults();
         
         this.trackFusionOrchestrator = new TrackFusionOrchestrator(
             trackFusionEngine,
@@ -142,65 +142,5 @@ public final class AtcServer {
             log.error("Fatal error while running ATC server", e);
             System.exit(1);
         }
-    }
-}
-
-/**
- * Configuration for ATC server.
- * Loaded from atc-config.properties.
- */
-final class AtcConfiguration {
-    
-    private final String bindAddress;
-    private final int listenPort;
-
-    private AtcConfiguration(
-            String bindAddress,
-            int listenPort
-    ) {
-        this.bindAddress = bindAddress;
-        this.listenPort = listenPort;
-    }
-
-    public String bindAddress() { return bindAddress; }
-    public int listenPort() { return listenPort; }
-
-    @Override
-    public String toString() {
-        return String.format(
-            "AtcConfiguration{bindAddress=%s, listenPort=%d}",
-            bindAddress, listenPort
-        );
-    }
-
-    /**
-     * Resolve the bind address: if configured as "0.0.0.0" or "auto",
-     * automatically detect the local non-loopback IP (same as RadarSimulator does).
-     */
-    private static String resolveBindAddress(String configured) throws Exception {
-        if ("0.0.0.0".equals(configured) || "auto".equalsIgnoreCase(configured)) {
-            return InetAddress.getLocalHost().getHostAddress();
-        }
-        return configured;
-    }
-
-    /**
-     * Load configuration from properties and environment.
-     */
-    public static AtcConfiguration load() throws Exception {
-        Properties props = new Properties();
-        try (var in = AtcServer.class.getClassLoader().getResourceAsStream("atc-config.properties")) {
-            if (in != null) {
-                props.load(in);
-            }
-        }
-
-        String configuredAddress = props.getProperty("atc.bind.address", "0.0.0.0");
-        String bindAddress = resolveBindAddress(configuredAddress);
-        int listenPort = Integer.parseInt(props.getProperty("atc.listen.port", "15001"));
-
-        return new AtcConfiguration(
-            bindAddress, listenPort
-        );
     }
 }

@@ -1,6 +1,7 @@
 package com.tacticnav.atc.network;
 
 import com.tacticnav.atc.domain.RadarInputMessage;
+import com.tacticnav.atc.metrics.ErrorMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,17 +21,38 @@ public class AdsbListener implements Runnable {
     private final int port;
     private final AdsbPacketParser parser;
     private final Consumer<RadarInputMessage> handler;
+    private final ErrorMetrics errorMetrics;
     private final byte[] buffer = new byte[112];
 
     private volatile DatagramSocket socket;
     private volatile boolean running = false;
     private volatile Throwable lastError = null;
 
-    public AdsbListener(String bindAddress, int port, Consumer<RadarInputMessage> handler) {
+    /**
+     * Create an AdsbListener with error metrics tracking.
+     * 
+     * @param bindAddress the address to bind to
+     * @param port the UDP port to listen on
+     * @param handler the handler for parsed messages
+     * @param errorMetrics the error metrics collector (can be null for no tracking)
+     */
+    public AdsbListener(String bindAddress, int port, Consumer<RadarInputMessage> handler, ErrorMetrics errorMetrics) {
         this.bindAddress = bindAddress;
         this.port = port;
         this.handler = handler;
         this.parser = new AdsbPacketParser();
+        this.errorMetrics = errorMetrics;
+    }
+    
+    /**
+     * Create an AdsbListener without error metrics tracking.
+     * 
+     * @param bindAddress the address to bind to
+     * @param port the UDP port to listen on
+     * @param handler the handler for parsed messages
+     */
+    public AdsbListener(String bindAddress, int port, Consumer<RadarInputMessage> handler) {
+        this(bindAddress, port, handler, null);
     }
 
     @Override
@@ -63,13 +85,24 @@ public class AdsbListener implements Runnable {
                         message.slantRange());
                     handler.accept(message);
                 } catch (AdsbPacketParser.ParseException e) {
-                    log.warn("Failed to parse ADS-B packet", e);
+                    if (errorMetrics != null) {
+                        errorMetrics.incrementParseErrors();
+                    }
+                    log.warn("Failed to parse ADS-B packet (total parse errors: {}): {}",
+                            errorMetrics != null ? errorMetrics.getParseErrorCount() : "N/A",
+                            e.getMessage());
                 }
             }
         } catch (Exception e) {
             if (running) {
                 lastError = e;
-                log.error("Fatal error in ADS-B listener", e);
+                if (errorMetrics != null) {
+                    errorMetrics.incrementNetworkErrors();
+                }
+                log.error("Fatal error in ADS-B listener (total network errors: {}): {}",
+                        errorMetrics != null ? errorMetrics.getNetworkErrorCount() : "N/A",
+                        e.getMessage(),
+                        e);
             }
         } finally {
             socket = null;
@@ -92,5 +125,14 @@ public class AdsbListener implements Runnable {
 
     public Throwable getLastError() {
         return lastError;
+    }
+    
+    /**
+     * Get the error metrics for this listener.
+     * 
+     * @return the error metrics, or null if not configured
+     */
+    public ErrorMetrics getErrorMetrics() {
+        return errorMetrics;
     }
 }

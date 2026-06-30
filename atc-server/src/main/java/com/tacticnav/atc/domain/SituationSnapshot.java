@@ -1,6 +1,5 @@
 package com.tacticnav.atc.domain;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -36,20 +35,6 @@ public record SituationSnapshot(
         if (sequenceNumber < 0) {
             throw new IllegalArgumentException("sequenceNumber must be non-negative");
         }
-    }
-
-    /**
-     * Get an unmodifiable view of the tracks map.
-     */
-    public Map<TrackId, Track> tracksView() {
-        return Collections.unmodifiableMap(tracks);
-    }
-
-    /**
-     * Get an unmodifiable view of the zones list.
-     */
-    public List<NoFlyZone> zonesView() {
-        return Collections.unmodifiableList(zones);
     }
 
     /**

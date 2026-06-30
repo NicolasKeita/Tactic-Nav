@@ -24,16 +24,63 @@ import java.util.*;
  *   6. If no candidates exist: create a new track
  *   7. Ignore out-of-order observations for already matched tracks
  * 
- * Gate distance: 500m (tunable parameter)
- * Confidence decay: tracks lose confidence if not updated
+ * Default parameters:
+ *   - associationGateDistance: 500.0 meters
+ *   - trackTTL: 5000 milliseconds
  */
 public final class TrackFusionEngine {
     
-    // Gate parameters (tunable)
-    private static final double ASSOCIATION_GATE_DISTANCE = 500.0;  // meters
-    private static final long TRACK_TTL = 5000;  // milliseconds
+    private final double associationGateDistance;
+    private final long trackTTL;
     
-    public TrackFusionEngine() {}
+    /**
+     * Create a TrackFusionEngine with custom parameters.
+     * 
+     * @param associationGateDistance maximum distance in meters for track association
+     * @param trackTTL time-to-live in milliseconds for tracks without updates
+     * @throws IllegalArgumentException if parameters are invalid
+     */
+    public TrackFusionEngine(double associationGateDistance, long trackTTL) {
+        if (associationGateDistance <= 0) {
+            throw new IllegalArgumentException("associationGateDistance must be positive");
+        }
+        if (trackTTL <= 0) {
+            throw new IllegalArgumentException("trackTTL must be positive");
+        }
+        this.associationGateDistance = associationGateDistance;
+        this.trackTTL = trackTTL;
+    }
+    
+    /**
+     * Create a TrackFusionEngine with default parameters.
+     * 
+     * @return engine with default configuration (500m gate, 5s TTL)
+     */
+    public static TrackFusionEngine withDefaults() {
+        return new TrackFusionEngine(500.0, 5000);
+    }
+    
+    /**
+     * Create a TrackFusionEngine with only custom association gate distance.
+     * Uses default TTL of 5000ms.
+     * 
+     * @param associationGateDistance maximum distance in meters for track association
+     * @return engine with custom gate distance and default TTL
+     */
+    public static TrackFusionEngine withCustomGate(double associationGateDistance) {
+        return new TrackFusionEngine(associationGateDistance, 5000);
+    }
+    
+    /**
+     * Create a TrackFusionEngine with only custom TTL.
+     * Uses default gate distance of 500m.
+     * 
+     * @param trackTTL time-to-live in milliseconds for tracks without updates
+     * @return engine with custom TTL and default gate distance
+     */
+    public static TrackFusionEngine withCustomTTL(long trackTTL) {
+        return new TrackFusionEngine(500.0, trackTTL);
+    }
 
     /**
      * Process an incoming radar observation and update track state.
@@ -64,7 +111,7 @@ public final class TrackFusionEngine {
             : findBestMatch(
                 newPos,
                 currentTracks.values(),
-                ASSOCIATION_GATE_DISTANCE,
+                associationGateDistance,
                 message.timestamp()
             );
 
@@ -98,7 +145,7 @@ public final class TrackFusionEngine {
     ) {
         List<TrackId> staleTracks = new ArrayList<>();
         for (var entry : currentTracks.entrySet()) {
-            if (entry.getValue().isStale(currentTime, TRACK_TTL)) {
+            if (entry.getValue().isStale(currentTime, trackTTL)) {
                 staleTracks.add(entry.getKey());
                 events.add(TrackFusionEvent.trackExpired(entry.getKey()));
             }

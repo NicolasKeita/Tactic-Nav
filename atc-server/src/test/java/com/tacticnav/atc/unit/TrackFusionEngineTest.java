@@ -15,7 +15,7 @@ class TrackFusionEngineTest {
 
     @Test
     void fuse_shouldIgnoreOutOfOrderObservationForExistingTrack() {
-        TrackFusionEngine engine = new TrackFusionEngine();
+        TrackFusionEngine engine = TrackFusionEngine.withDefaults();
         Map<TrackId, Track> tracks = new HashMap<>();
 
         RadarInputMessage first = new RadarInputMessage((short) 5, 90f, 0f, 1_000f, 2_000L);
@@ -34,7 +34,7 @@ class TrackFusionEngineTest {
 
     @Test
     void fuse_shouldExpireStaleTracksBeforeAssociation() {
-        TrackFusionEngine engine = new TrackFusionEngine();
+        TrackFusionEngine engine = TrackFusionEngine.withDefaults();
         Map<TrackId, Track> tracks = new HashMap<>();
 
         RadarInputMessage first = new RadarInputMessage((short) 5, 90f, 0f, 1_000f, 1_000L);

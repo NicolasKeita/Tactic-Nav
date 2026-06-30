@@ -1,6 +1,7 @@
 package com.tacticnav.atc.fusion;
 
 import com.tacticnav.atc.domain.*;
+import com.tacticnav.atc.metrics.ErrorMetrics;
 import com.tacticnav.atc.state.SituationStateStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,9 +27,13 @@ import java.util.concurrent.*;
 public class TrackFusionOrchestrator implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(TrackFusionOrchestrator.class);
     
+    // Polling timeout: longer timeout reduces CPU usage but increases latency
+    private static final long POLL_TIMEOUT_MS = 500;  // Increased from 100ms to reduce CPU usage
+    
     private final BlockingQueue<RadarInputMessage> messageQueue;
     private final TrackFusionEngine trackFusionEngine;
     private final SituationStateStore stateStore;
+    private final ErrorMetrics errorMetrics;
     
     private volatile boolean running = false;
     private volatile long processedMessages = 0;
@@ -49,9 +54,27 @@ public class TrackFusionOrchestrator implements Runnable {
             SituationStateStore stateStore,
             int queueSize
     ) {
+        this(trackFusionEngine, stateStore, queueSize, null);
+    }
+    
+    /**
+     * Create the track fusion orchestrator with error metrics.
+     * 
+     * @param trackFusionEngine the track fusion logic
+     * @param stateStore the situation snapshot holder
+     * @param queueSize capacity of input queue
+     * @param errorMetrics the error metrics collector (can be null)
+     */
+    public TrackFusionOrchestrator(
+            TrackFusionEngine trackFusionEngine,
+            SituationStateStore stateStore,
+            int queueSize,
+            ErrorMetrics errorMetrics
+    ) {
         this.trackFusionEngine = trackFusionEngine;
         this.stateStore = stateStore;
         this.messageQueue = new LinkedBlockingQueue<>(queueSize);
+        this.errorMetrics = errorMetrics;
     }
 
     /**
@@ -65,7 +88,13 @@ public class TrackFusionOrchestrator implements Runnable {
             return true;
         } else {
             droppedMessages++;
-            log.warn("Queue full, dropped observation track {}", message.trackId());
+            if (errorMetrics != null) {
+                errorMetrics.incrementQueueOverflow();
+            }
+            log.warn("Queue full, dropped observation track {} (total dropped: {}, queue overflow: {})",
+                    message.trackId(),
+                    droppedMessages,
+                    errorMetrics != null ? errorMetrics.getQueueOverflowCount() : "N/A");
             return false;
         }
     }
@@ -82,7 +111,7 @@ public class TrackFusionOrchestrator implements Runnable {
         try {
             while (running && !Thread.currentThread().isInterrupted()) {
                 try {
-                    RadarInputMessage message = messageQueue.poll(100, TimeUnit.MILLISECONDS);
+                    RadarInputMessage message = messageQueue.poll(POLL_TIMEOUT_MS, TimeUnit.MILLISECONDS);
                     
                     if (message == null) {
                         continue;
@@ -109,7 +138,13 @@ public class TrackFusionOrchestrator implements Runnable {
                     Thread.currentThread().interrupt();
                     break;
                 } catch (Exception e) {
-                    log.error("Error during track fusion", e);
+                    if (errorMetrics != null) {
+                        errorMetrics.incrementProcessingErrors();
+                    }
+                    log.error("Error during track fusion (total processing errors: {}): {}",
+                            errorMetrics != null ? errorMetrics.getProcessingErrorCount() : "N/A",
+                            e.getMessage(),
+                            e);
                 }
             }
         } finally {
@@ -131,6 +166,15 @@ public class TrackFusionOrchestrator implements Runnable {
      */
     public boolean isRunning() {
         return running;
+    }
+    
+    /**
+     * Get the error metrics for this orchestrator.
+     * 
+     * @return the error metrics, or null if not configured
+     */
+    public ErrorMetrics getErrorMetrics() {
+        return errorMetrics;
     }
 
     /**

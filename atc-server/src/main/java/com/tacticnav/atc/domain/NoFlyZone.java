@@ -37,10 +37,15 @@ public record NoFlyZone(
 
     /**
      * Check if a position is inside this no-fly zone.
-     * Uses simple point-in-polygon algorithm (ray casting).
+     * Uses point-in-polygon algorithm (ray casting) for horizontal containment
+     * and altitude range check.
      * 
-     * @param pos position to test
-     * @return true if position is within zone boundaries and altitude
+     * Note: This implementation assumes vertices are in the same coordinate system
+     * as the Position (Cartesian X=East, Y=North). For proper geospatial containment
+     * with lat/lon vertices, a coordinate transformation would be needed.
+     * 
+     * @param pos position to test (Cartesian coordinates: x=East, y=North, z=altitude)
+     * @return true if position is within zone boundaries and altitude range
      */
     public boolean contains(Position pos) {
         // Altitude check
@@ -48,10 +53,42 @@ public record NoFlyZone(
             return false;
         }
         
-        // Point-in-polygon (horizontal plane)
-        // Convert Cartesian (x, y) to lat/lon is deferred to SIG layer;
-        // for now, simple AABB test as placeholder
-        return true; // TODO: implement proper geospatial containment
+        // Point-in-polygon check using ray casting algorithm
+        // Vertices are stored as [lat0, lon0, lat1, lon1, ...]
+        // For this implementation, we treat them as Cartesian (x, y) coordinates
+        return isPointInPolygon(pos.x(), pos.y());
+    }
+
+    /**
+     * Ray casting algorithm to determine if a point is inside a polygon.
+     * Works with both convex and concave polygons.
+     * 
+     * @param x X coordinate of the point to test (East)
+     * @param y Y coordinate of the point to test (North)
+     * @return true if the point is inside the polygon
+     */
+    private boolean isPointInPolygon(double x, double y) {
+        int numVertices = vertices.length / 2;
+        boolean inside = false;
+        
+        for (int i = 0, j = numVertices - 1; i < numVertices; j = i++) {
+            // Get vertex coordinates (treating lat as y, lon as x for Cartesian compatibility)
+            // Note: This is a simplification. Proper implementation would need coordinate transformation.
+            double xi = vertices[i * 2 + 1]; // lon -> x (East)
+            double yi = vertices[i * 2];     // lat -> y (North)
+            double xj = vertices[j * 2 + 1]; // lon -> x (East)
+            double yj = vertices[j * 2];     // lat -> y (North)
+            
+            // Check if ray from point to right infinity intersects with polygon edge
+            boolean intersects = ((yi > y) != (yj > y)) && 
+                                 (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+            
+            if (intersects) {
+                inside = !inside;
+            }
+        }
+        
+        return inside;
     }
 
     /**
